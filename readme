@@ -1,0 +1,65 @@
+
+this repo for smart tutor boilerplate dev "don't" use it for productions
+
+
+Dev API:
+    Task Name:boilerplate
+    URL:
+
+Run local:
+    1.Run command below to setup environment
+    1."create new branch" using "boilerplate"
+    2.conda create --name smart_tutor python=3.10
+    3.conda activate smart_tutor
+    4.pip install -r requirements.txt
+    2.Run command below to start the api
+    run "uvicorn app.main:app --host 0.0.0.0 --port 8000"
+    Visit http://localhost:8000/docs
+
+Folder Structure:
+    project_name/
+    ├── app/
+    │ ├── **init**.py
+    │ ├── main.py # Entry point of the application
+    │ ├── api/ # API routes
+    │ │ ├── **init**.py
+    │ │ ├── v1/ # Versioned APIs
+    │ │ │ ├── **init**.py
+    │ │ │ ├── routes/ # Individual route files
+    │ │ │ │ ├── **init**.py
+    │ │ │ │ ├── users.py # Example route for user-related operations
+    │ │ │ │ ├── items.py # Example route for item-related operations
+    │ │ │ ├── dependencies.py # Dependencies for API
+    │ ├── core/ # Core application settings
+    │ │ ├── **init**.py
+    │ │ ├── config.py # Configuration settings (e.g., database, secrets)
+    │ │ ├── security.py # Security utilities (e.g., JWT tokens, password hashing)
+    │ ├── db/ # Database-related files
+    │ │ ├── **init**.py
+    │ │ ├── base.py # Base models for database
+    │ │ ├── session.py # Database session handling
+    │ │ ├── models/ # Database models
+    │ │ │ ├── **init**.py
+    │ │ │ ├── user.py # Example user model
+    │ │ │ ├── item.py # Example item model
+    │ ├── schemas/ # Pydantic schemas for request/response validation
+    │ │ ├── **init**.py
+    │ │ ├── user.py # User schemas
+    │ │ ├── item.py # Item schemas
+    │ ├── services/ # Business logic and service layers
+    │ │ ├── **init**.py
+    │ │ ├── user_service.py # Example user-related services
+    │ │ ├── item_service.py # Example item-related services
+    │ ├── utils/ # Utility functions
+    │ │ ├── **init**.py
+    │ │ ├── common.py # Example of common helper utilities
+    │ ├── tests/ # Unit and integration tests
+    │ │ ├── **init**.py
+    │ │ ├── test_main.py # Tests for main app functionality
+    │ │ ├── test_routes.py # Tests for routes
+    │ │ ├── test_services.py # Tests for services
+    ├── .env # Environment variables
+    ├── requirements.txt # Python dependencies
+    ├── README.md # Project documentation
+    ├── docker-compose.yml # Docker Compose for local development
+    ├── Dockerfile # Dockerfile to containerize the app

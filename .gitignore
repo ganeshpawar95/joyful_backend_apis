@@ -1,0 +1,73 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*.so
+
+# Virtual environment
+.env
+venv/
+__pycache__/
+
+# FastAPI environment and build files
+build/
+dist/
+
+# Common IDE and Editor specific files
+.idea/
+*.suo
+*.svn/
+*.bak
+*.swp
+*.swi
+*.ds_store
+*.vscode/
+
+# Database files
+*.sqlite
+*.db
+*.sqlite3
+
+# Test and Debug files
+*.pytest_cache
+*.tox
+*.nox
+
+# Pycharm
+*.iml
+*.idea/
+*.pycharm_helpers/
+*.egg-info/
+.Python
+
+# Poetry
+.pnpm-store/
+.pnpm/
+node_modules/
+
+# Yarn
+.yarn/
+.yarn-integrity
+
+# npm
+node_modules/
+
+# MacOS
+.DS_Store
+
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# OS-specific files
+.cache/
+*.aux
+*.out
+*.toc
+*.lot
+*.log
+
+# Other
+.env
+.sql
+*.env
