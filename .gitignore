@@ -24,7 +24,6 @@ dist/
 
 # Database files
 *.sqlite
-*.db
 *.sqlite3
 
 # Test and Debug files
@@ -55,8 +54,6 @@ node_modules/
 .DS_Store
 
 # Windows
-Thumbs.db
-ehthumbs.db
 Desktop.ini
 
 # OS-specific files
@@ -68,6 +65,4 @@ Desktop.ini
 *.log
 
 # Other
-.env
 .sql
-*.env
