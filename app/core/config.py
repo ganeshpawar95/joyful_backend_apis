@@ -61,9 +61,14 @@ class Settings(BaseSettings):
     product_DIR: str = "images/products"
     BASE_IMG_DIR: str = "images/"
 
+    PRODUCT_IMG_DIR: str = "images/products/banners"
+    PRODUCT_REVIEW_DIR: str = "images/reviews"
+
     os.makedirs(BANNER_DIR, exist_ok=True)
     os.makedirs(product_DIR, exist_ok=True)
     os.makedirs(BASE_IMG_DIR, exist_ok=True)
+    os.makedirs(PRODUCT_IMG_DIR, exist_ok=True)
+    os.makedirs(PRODUCT_REVIEW_DIR, exist_ok=True)
 
     @computed_field  # type: ignore[misc]
     @property
