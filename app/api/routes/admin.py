@@ -6,9 +6,13 @@ from typing import Optional
 from app.db.models.banner import Banners
 from app.db.models.product import *
 from app.schemas.request import UpdateProductPayload
-from app.schemas.response import ProductFrameCreate, ProductReviewCreate, ProductTagCreate
+from app.schemas.response import (
+    ProductFrameCreate,
+    ProductReviewCreate,
+    ProductTagCreate,
+)
 from app.services.modal_services import create_record, update_record
-from fastapi import APIRouter, Depends, HTTPException,UploadFile, File,Form
+from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form
 from sqlalchemy.orm import Session
 from app.core.config import Settings
 from app.core import security
@@ -17,11 +21,20 @@ from fastapi import HTTPException, status
 
 
 router = APIRouter()
-setting=Settings()
+setting = Settings()
 
-#1.banner list api
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+upload_dir = os.path.join(BASE_DIR, "images/products")
+os.makedirs(upload_dir, exist_ok=True)
+
+
+# 1.banner list api
 @router.post("/upload-banner/")
-async def upload_banner(file: UploadFile = File(...),banner_priority:int=0, db: Session = Depends(get_db)):
+async def upload_banner(
+    file: UploadFile = File(...),
+    banner_priority: int = 0,
+    db: Session = Depends(get_db),
+):
     try:
         file_path = os.path.join(setting.BANNER_DIR, file.filename)
         # Save File to Disk
@@ -29,13 +42,15 @@ async def upload_banner(file: UploadFile = File(...),banner_priority:int=0, db: 
             shutil.copyfileobj(file.file, buffer)
         # Save Metadata to DB
         create_record(
-                    db, Banners,
-                    banner_name=setting.BANNER_DIR+"/"+file.filename,
-                    banner_priority=banner_priority,
+            db,
+            Banners,
+            banner_name=setting.BANNER_DIR + "/" + file.filename,
+            banner_priority=banner_priority,
         )
         return {"message": "Banner uploaded successfully", "filename": file.filename}
     except Exception as error:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(error))
+
 
 # API to Get All Banners
 @router.get("/banners/")
@@ -47,8 +62,7 @@ def get_banners_all(db: Session = Depends(get_db)):
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(error))
 
 
-
-#2. add product
+# 2. add product
 @router.post("/products/add/")
 async def create_product(
     product_name: str = Form(...),
@@ -56,28 +70,31 @@ async def create_product(
     offer_price: str = Form(...),
     price: str = Form(...),
     description: str = Form(...),
-    care_instructions: Optional[str]  = Form(None),
-    delivery_info: Optional[str]  = Form(None),
-    meta_title: Optional[str]  = Form(None),
-    meta_keywords: Optional[str]  = Form(None),
-    meta_desc: Optional[str]  = Form(None),
+    care_instructions: Optional[str] = Form(None),
+    delivery_info: Optional[str] = Form(None),
+    meta_title: Optional[str] = Form(None),
+    meta_keywords: Optional[str] = Form(None),
+    meta_desc: Optional[str] = Form(None),
     product_status: bool = Form(...),
     priority: int = Form(...),
-    product_type: Optional[str]  = Form(None),
-    product_category:Optional[str]  = Form(None),
-    is_digital:Optional[bool]  = Form(False),
+    product_type: Optional[str] = Form(None),
+    product_category: Optional[str] = Form(None),
+    is_digital: Optional[bool] = Form(False),
     product_images: UploadFile = File(...),  # Image file input
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
     try:
         # Save the image
-        image_path = f"images/products/{product_images.filename}"
+        image_path = os.path.join(upload_dir, product_images.filename)
+
+        # image_path = f"images/products/{product_images.filename}"
         with open(image_path, "wb") as buffer:
             shutil.copyfileobj(product_images.file, buffer)
 
-        # Create DB entry    
+        # Create DB entry
         create_record(
-            db, Products,
+            db,
+            Products,
             product_name=product_name,
             url_name=url_name,
             offer_price=offer_price,
@@ -93,34 +110,40 @@ async def create_product(
             priority=priority,
             product_type=product_type,
             is_digital=is_digital,
-            product_category=product_category
+            product_category=product_category,
         )
         return {"message": "Product created successfully"}
     except Exception as error:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(error))
-    
+
 
 @router.put("/product/update/")
 async def update_product_details(
-    product_id:int,
-    description:Optional[str]=None,
-    delivery_info:Optional[str]=None,
-    care_instructions:Optional[str]=None,
-    offer_price:Optional[int]=None,
-    price:Optional[int]=None,
-
-    db: Session = Depends(get_db)):
+    product_id: int,
+    description: Optional[str] = None,
+    delivery_info: Optional[str] = None,
+    care_instructions: Optional[str] = None,
+    offer_price: Optional[int] = None,
+    price: Optional[int] = None,
+    db: Session = Depends(get_db),
+):
     try:
         # Save Metadata to DB
         update_record(
-                    db, Products,
-                    filters={"id":product_id},
-                    updates={"price":price, "offer_price":offer_price, "description":description,"delivery_info":delivery_info,"care_instructions":care_instructions}
+            db,
+            Products,
+            filters={"id": product_id},
+            updates={
+                "price": price,
+                "offer_price": offer_price,
+                "description": description,
+                "delivery_info": delivery_info,
+                "care_instructions": care_instructions,
+            },
         )
         return {"message": "Product details updated successfully"}
     except Exception as error:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(error))
-
 
 
 @router.get("/products/list/")
@@ -131,17 +154,21 @@ def get_product_list(db: Session = Depends(get_db)):
     except Exception as error:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(error))
 
-#2.product list according filter type(best selling product,trending product,search)
 
-#3.Customer reviews api
+# 2.product list according filter type(best selling product,trending product,search)
 
-#4product images updated
+# 3.Customer reviews api
+
+
+# 4product images updated
 @router.post("/product/images/add/")
-async def upload_product_images(image: UploadFile = File(...),
+async def upload_product_images(
+    image: UploadFile = File(...),
     product_id: str = Form(...),
     status: str = Form(...),
     priority: str = Form(...),
-    db: Session = Depends(get_db)):
+    db: Session = Depends(get_db),
+):
     try:
         # Save the image
         image_path = f"images/products/banners/{image.filename}"
@@ -149,28 +176,28 @@ async def upload_product_images(image: UploadFile = File(...),
             shutil.copyfileobj(image.file, buffer)
         # Save Metadata to DB
         create_record(
-                    db, Product_images,
-                    images=image_path,
-                    product_id=product_id,
-                    status=status,
-                    priority=priority
+            db,
+            Product_images,
+            images=image_path,
+            product_id=product_id,
+            status=status,
+            priority=priority,
         )
         return {"message": "Product banner uploaded successfully"}
     except Exception as error:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(error))
 
 
-
 @router.post("/products/reviews/")
 def add_product_review(
     files: List[UploadFile] = File(...),
-    product_id:int = Form(...),
-    user_name:str = Form(...),
-    title:str = Form(...),
-    review:str = Form(...),
-    rating:int = Form(...),
-
-    db: Session = Depends(get_db)):
+    product_id: int = Form(...),
+    user_name: str = Form(...),
+    title: str = Form(...),
+    review: str = Form(...),
+    rating: int = Form(...),
+    db: Session = Depends(get_db),
+):
     try:
         # Check if product exists
         product = db.query(Products).filter(Products.id == product_id).first()
@@ -184,10 +211,10 @@ def add_product_review(
                 shutil.copyfileobj(file.file, buffer)
             file_paths.append(file_path)
 
-
-        # Create new review        
-        query=create_record(
-            db, Product_rating,
+        # Create new review
+        query = create_record(
+            db,
+            Product_rating,
             product_id=product_id,
             user_name=user_name,
             title=title,
@@ -195,32 +222,31 @@ def add_product_review(
             rating=rating,
             status="approved",
         )
-        
-        #save images in db
+
+        # save images in db
         for img in file_paths:
             create_record(
-                db, Product_Review_images,
+                db,
+                Product_Review_images,
                 product_rating_id=query.id,
                 images=img,
-            )    
+            )
         return {"message": "Review added successfully"}
     except Exception as error:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(error))
 
 
-
-
-
 @router.post("/certificate/color/add/")
 def add_certificate_color(payload: ProductFrameCreate, db: Session = Depends(get_db)):
     try:
-        # Create new certificate color        
+        # Create new certificate color
         create_record(
-            db, Certificate_colors,
+            db,
+            Certificate_colors,
             name=payload.name,
             status=payload.status,
             priority=payload.priority,
-            product_id=payload.product_id
+            product_id=payload.product_id,
         )
         return {"message": "Certificate color added successfully"}
     except Exception as error:
@@ -230,14 +256,14 @@ def add_certificate_color(payload: ProductFrameCreate, db: Session = Depends(get
 @router.post("/frame/color/add/")
 def add_frame_color(payload: ProductFrameCreate, db: Session = Depends(get_db)):
     try:
-        # Create new certificate color        
+        # Create new certificate color
         create_record(
-            db, Frame_colors,
+            db,
+            Frame_colors,
             name=payload.name,
             status=payload.status,
             priority=payload.priority,
-            product_id=payload.product_id
-
+            product_id=payload.product_id,
         )
         return {"message": "Frame color added successfully"}
     except Exception as error:
@@ -247,14 +273,14 @@ def add_frame_color(payload: ProductFrameCreate, db: Session = Depends(get_db)):
 @router.post("/frame/size/add/")
 def add_frame_color(payload: ProductFrameCreate, db: Session = Depends(get_db)):
     try:
-        # Create new frame size        
+        # Create new frame size
         create_record(
-            db, Frame_size,
+            db,
+            Frame_size,
             name=payload.name,
             status=payload.status,
             priority=payload.priority,
-            product_id=payload.product_id
-
+            product_id=payload.product_id,
         )
         return {"message": "Frame size added successfully"}
     except Exception as error:
@@ -264,36 +290,38 @@ def add_frame_color(payload: ProductFrameCreate, db: Session = Depends(get_db)):
 @router.post("/frame/thickness/add/")
 def add_frame_color(payload: ProductFrameCreate, db: Session = Depends(get_db)):
     try:
-        # Create new frame size        
+        # Create new frame size
         create_record(
-            db, Frame_Thickness,
+            db,
+            Frame_Thickness,
             name=payload.name,
             status=payload.status,
             priority=payload.priority,
-            product_id=payload.product_id
-
+            product_id=payload.product_id,
         )
         return {"message": "Frame thickness added successfully"}
     except Exception as error:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(error))
 
 
-
 # Product_tag_options
+
 
 @router.post("/product/tag_option/add/")
 def add_product_tag_options(payload: ProductTagCreate, db: Session = Depends(get_db)):
     try:
-        # Create new product tag        
+        # Create new product tag
         create_record(
-            db, Product_tag_options,
+            db,
+            Product_tag_options,
             product_id=payload.product_id,
             name=payload.name,
             tag=payload.tag,
             priority=payload.priority,
-            tag_optional=json.dumps(payload.tag_optional) if payload.tag_optional else None
+            tag_optional=(
+                json.dumps(payload.tag_optional) if payload.tag_optional else None
+            ),
         )
         return {"message": "Product tag added successfully"}
     except Exception as error:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(error))
-
