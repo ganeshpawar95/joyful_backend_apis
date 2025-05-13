@@ -11,13 +11,14 @@ from pydantic import (
     PostgresDsn,
     computed_field,
     model_validator,
-    Field
+    Field,
 )
 from pydantic_core import MultiHostUrl
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from typing_extensions import Self
 
 load_dotenv()
+
 
 def parse_cors(v: Any) -> list[str]:
     if isinstance(v, str) and not v.startswith("["):
@@ -36,7 +37,9 @@ class Settings(BaseSettings):
     SECRET_KEY: str = Field(..., env="SECRET_KEY")
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24 * 8
     DOMAIN: str = Field(..., env="DOMAIN")
-    ENVIRONMENT: Literal["D", "local", "staging", "production"] = Field(..., env="ENVIRONMENT")
+    ENVIRONMENT: Literal["D", "local", "staging", "production"] = Field(
+        ..., env="ENVIRONMENT"
+    )
 
     RAZORPAY_KEY_ID: str = Field(..., env="RAZORPAY_KEY_ID")
     RAZORPAY_KEY_SECRET: str = Field(..., env="RAZORPAY_KEY_SECRET")
@@ -49,18 +52,18 @@ class Settings(BaseSettings):
             return f"http://{self.DOMAIN}"
         return f"https://{self.DOMAIN}"
 
-    BACKEND_CORS_ORIGINS: Annotated[
-        list[AnyUrl], BeforeValidator(parse_cors)
-    ] = []
+    BACKEND_CORS_ORIGINS: Annotated[list[AnyUrl], BeforeValidator(parse_cors)] = []
 
     SQLITE_DB_FILE: str = Field("database.db", env="SQLITE_DB_FILE")
     TABLE_PREFIX: str = "prod_"
     # Directory to Save Banners
-    BANNER_DIR:str = "images/banners"
+    BANNER_DIR: str = "images/banners"
+    product_DIR: str = "images/products"
+    BASE_IMG_DIR: str = "images/"
+
     os.makedirs(BANNER_DIR, exist_ok=True)
-
-
- 
+    os.makedirs(product_DIR, exist_ok=True)
+    os.makedirs(BASE_IMG_DIR, exist_ok=True)
 
     @computed_field  # type: ignore[misc]
     @property

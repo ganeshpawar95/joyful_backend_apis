@@ -23,10 +23,6 @@ from fastapi import HTTPException, status
 router = APIRouter()
 setting = Settings()
 
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-upload_dir = os.path.join(BASE_DIR, "images/products")
-os.makedirs(upload_dir, exist_ok=True)
-
 
 # 1.banner list api
 @router.post("/upload-banner/")
@@ -85,10 +81,10 @@ async def create_product(
 ):
     try:
         # Save the image
-        image_path = os.path.join(upload_dir, product_images.filename)
+        file_path = os.path.join(setting.product_DIR, product_images.filename)
 
         # image_path = f"images/products/{product_images.filename}"
-        with open(image_path, "wb") as buffer:
+        with open(file_path, "wb") as buffer:
             shutil.copyfileobj(product_images.file, buffer)
 
         # Create DB entry
@@ -99,7 +95,7 @@ async def create_product(
             url_name=url_name,
             offer_price=offer_price,
             price=price,
-            thumbnail=image_path,  # Store image path
+            thumbnail=file_path,  # Store image path
             description=description,
             care_instructions=care_instructions,
             delivery_info=delivery_info,
@@ -171,7 +167,9 @@ async def upload_product_images(
 ):
     try:
         # Save the image
-        image_path = f"images/products/banners/{image.filename}"
+        image_path = os.path.join(
+            setting.BASE_IMG_DIR + "products/banners/", image.filename
+        )
         with open(image_path, "wb") as buffer:
             shutil.copyfileobj(image.file, buffer)
         # Save Metadata to DB
