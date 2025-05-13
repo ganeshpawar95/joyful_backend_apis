@@ -66,3 +66,5 @@ Desktop.ini
 
 # Other
 .sql
+.database.db
+.db
