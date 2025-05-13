@@ -161,7 +161,6 @@ def get_product_list(db: Session = Depends(get_db)):
 async def upload_product_images(
     image: UploadFile = File(...),
     product_id: str = Form(...),
-    status: str = Form(...),
     priority: str = Form(...),
     db: Session = Depends(get_db),
 ):
@@ -178,7 +177,7 @@ async def upload_product_images(
             Product_images,
             images=image_path,
             product_id=product_id,
-            status=status,
+            status="active",
             priority=priority,
         )
         return {"message": "Product banner uploaded successfully"}
@@ -203,7 +202,7 @@ def add_product_review(
             raise HTTPException(status_code=404, detail="Product not found")
         file_paths = []
         for file in files:
-            file_path = f"images/reviews/{file.filename}"
+            file_path = os.path.join(setting.BASE_IMG_DIR + "reviews/", file.filename)
             # Save file to the upload directory
             with open(file_path, "wb") as buffer:
                 shutil.copyfileobj(file.file, buffer)
