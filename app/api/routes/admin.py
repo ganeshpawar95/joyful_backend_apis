@@ -167,7 +167,7 @@ async def upload_product_images(
     try:
         # Save the image
         image_path = os.path.join(
-            setting.BASE_IMG_DIR + "products/banners/", image.filename
+            setting.BASE_IMG_DIR + "products/banners", image.filename
         )
         with open(image_path, "wb") as buffer:
             shutil.copyfileobj(image.file, buffer)
@@ -202,7 +202,7 @@ def add_product_review(
             raise HTTPException(status_code=404, detail="Product not found")
         file_paths = []
         for file in files:
-            file_path = os.path.join(setting.BASE_IMG_DIR + "reviews/", file.filename)
+            file_path = os.path.join(setting.BASE_IMG_DIR + "reviews", file.filename)
             # Save file to the upload directory
             with open(file_path, "wb") as buffer:
                 shutil.copyfileobj(file.file, buffer)
