@@ -1,26 +1,28 @@
-
 from typing import Type, TypeVar, List, Optional, Dict, Any
-from app.schemas.response import  MessageResponse
+from app.schemas.response import MessageResponse
 from sqlalchemy.orm import Session
 from app.db.models.user import *
 from fastapi import BackgroundTasks
 from sqlalchemy import and_
 
 
-#----------------------------------------dynamic function---------------------------------
+# ----------------------------------------dynamic function---------------------------------
 
 # Define a generic type for models
 T = TypeVar("T")
 
+
 # Generic function to get records by user ID
-def get_records_by_user_id(
-    db: Session, model: Type[T], user_id: int
-) -> list[T]:
+def get_records_by_user_id(db: Session, model: Type[T], user_id: int) -> list[T]:
     return db.query(model).filter(model.user_id == user_id).all()
+
 
 # Generic function to create a record
 def create_record(
-    db: Session, model: Type[T],background_tasks: Optional[BackgroundTasks] = None, **kwargs
+    db: Session,
+    model: Type[T],
+    background_tasks: Optional[BackgroundTasks] = None,
+    **kwargs,
 ) -> MessageResponse:
     try:
         record = model(**kwargs)
@@ -35,21 +37,35 @@ def create_record(
 
 
 # Generic function to get a record by filters
-def get_record_by_filters(
-    db: Session, model: Type[T], **filters
-) -> Optional[T]:
+def get_record_by_filters(db: Session, model: Type[T], **filters) -> Optional[T]:
     return db.query(model).filter_by(**filters).first()
 
 
-def get_record_by_filters_all(db: Session, model: Type[T], **filters) -> Optional[T]:
-    return db.query(model).filter(and_(*(getattr(model, key) == value for key, value in filters.items()))).all()
+def get_record_by_filters_all(
+    db: Session, model: Type[T], **filters
+) -> Optional[List[T]]:
+    conditions = []
 
+    for key, value in filters.items():
+        if value == "":
+            continue
+
+        column = getattr(model, key)
+
+        # If it's a name/search field, apply partial match
+        if key in ["product_name", "name", "title"]:
+            conditions.append(column.ilike(f"%{value}%"))
+        else:
+            conditions.append(column == value)
+
+    return db.query(model).filter(and_(*conditions)).all()
 
 
 def get_record_by_filters_with_desc(
     db: Session, model: Type[T], **filters
 ) -> Optional[T]:
     return db.query(model).filter_by(**filters).order_by(model.id.desc()).first()
+
 
 # Generic function to update a record
 def update_record(
@@ -73,5 +89,3 @@ def update_record(
     except Exception as error:
         db.rollback()
         raise ValueError(f"Something went wrong. Please contact support: {str(error)}")
-
-

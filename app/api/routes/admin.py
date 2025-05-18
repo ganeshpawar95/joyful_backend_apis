@@ -75,6 +75,7 @@ async def create_product(
     priority: int = Form(...),
     product_type: Optional[str] = Form(None),
     product_category: Optional[str] = Form(None),
+    product_trading_type: Optional[str] = Form(None),
     is_digital: Optional[bool] = Form(False),
     product_images: UploadFile = File(...),  # Image file input
     db: Session = Depends(get_db),
@@ -107,6 +108,7 @@ async def create_product(
             product_type=product_type,
             is_digital=is_digital,
             product_category=product_category,
+            product_trading_type=product_trading_type,
         )
         return {"message": "Product created successfully"}
     except Exception as error:

@@ -11,25 +11,27 @@ class Message(SQLModel):
 
 
 class UserPublic(SQLModel):
-    id:int=0
-    username: str  
-    email: str="",
-    phone:str=""
-    profile_pic:str=""
-    grade:str
-    student_board:str
-    country:str
+    id: int = 0
+    username: str
+    email: str = ("",)
+    phone: str = ""
+    profile_pic: str = ""
+    grade: str
+    student_board: str
+    country: str
 
 
 class TokenResponse(SQLModel):
     access_token: str
     token_type: str = "bearer"
-    refresh_token:str
+    refresh_token: str
     id: int
+
 
 class B2BLoginResponse(SQLModel):
     email: str
-    phone:str
+    phone: str
+
 
 class NotificationPublic(BaseModel):
     id: int
@@ -37,20 +39,18 @@ class NotificationPublic(BaseModel):
     sender_user_id: Optional[int] = None
     message: str
     payload: Optional[Dict[str, Any]] = None
-    sender: Optional['UserPublic'] = None
+    sender: Optional["UserPublic"] = None
     action: Optional[str] = None
     status: Optional[str] = None
     created_at: datetime
     updated_at: datetime
 
 
+# --------------------------------new payload-----------------------------
 
-#--------------------------------new payload-----------------------------
 
 class MessageResponse(SQLModel):
-    message:str=""
-
-
+    message: str = ""
 
 
 class ProductImageResponse(BaseModel):
@@ -58,7 +58,7 @@ class ProductImageResponse(BaseModel):
     images: Optional[str]  # Allow NULL values
     status: str
     priority: int
-    
+
 
 class ProductTagOptionsResponse(BaseModel):
     id: int
@@ -69,16 +69,12 @@ class ProductTagOptionsResponse(BaseModel):
 
     class Config:
         orm_mode = True
-    
 
 
 class ProductColorResponse(BaseModel):
     id: int
     name: Optional[str]  # Allow NULL values
 
-
-    
-    
 
 class ProductRatingResponse(BaseModel):
     id: int
@@ -94,7 +90,7 @@ class ProductResponse(BaseModel):
     id: int
     product_name: Optional[str]
     url_name: Optional[str]
-    thumbnail:str
+    thumbnail: str
     offer_price: Optional[str]
     price: Optional[str]
     description: Optional[str]
@@ -106,22 +102,20 @@ class ProductResponse(BaseModel):
     status: Optional[bool]
     priority: Optional[int]
     product_type: Optional[str]
+    product_trading_type: Optional[str]
 
     # Include Product Images Relationship
     product_images: List[ProductImageResponse] = []
     product_ratings: List[ProductRatingResponse] = []  # List of ratings
     product_tag_options: List[ProductTagOptionsResponse] = []  # List of ratings
-    
+
     certificate_colors: List[ProductColorResponse] = []  # List of ratings
     frame_colors: List[ProductColorResponse] = []  # List of ratings
     frame_size: List[ProductColorResponse] = []  # List of ratings
     frame_thickness: List[ProductColorResponse] = []  # List of ratings
 
-    
-
     class Config:
         from_attributes = True  # Enables ORM conversion
-
 
 
 # Pydantic Model for Request
@@ -138,7 +132,7 @@ class ProductFrameCreate(BaseModel):
     name: Optional[str] = None
     status: bool  # Example: "approved", "pending"
     priority: Optional[int] = None
-    product_id:int
+    product_id: int
 
 
 class ProductTagCreate(BaseModel):
@@ -149,17 +143,16 @@ class ProductTagCreate(BaseModel):
     tag_optional: Optional[Dict[str, Any]]
 
 
-
-
 # --- Pydantic Response Models ---
 class TagOptionResponse(BaseModel):
     tag_name: str
     tag_data: str
 
+
 class CartDetailsResponse(BaseModel):
-    cart_id:int
+    cart_id: int
     product_id: int
-    is_digital:bool
+    is_digital: bool
     product_name: str
-    price:int
-    thumbnail:str
+    price: int
+    thumbnail: str

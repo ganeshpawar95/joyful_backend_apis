@@ -54,12 +54,27 @@ def get_banners(db: Session = Depends(get_db)):
 
 # 2.product list according filter type(best selling product,trending product,search)
 @router.get("/products/list/")
-def get_products(product_type: str = "", db: Session = Depends(get_db)):
+def get_products(
+    product_type: Optional[str] = "",
+    search_name: Optional[str] = "",
+    product_category_type: Optional[str] = "",
+    db: Session = Depends(get_db),
+):
     try:
-        products = get_record_by_filters_all(
-            db=db, model=Products, product_type=product_type
-        )
+        filters = {}
+        if product_type:
+            filters["product_type"] = product_type
+
+        if search_name:
+            filters["product_name"] = search_name
+
+        if product_category_type:
+            filters["product_category"] = product_category_type
+
+        products = get_record_by_filters_all(db=db, model=Products, **filters)
+
         return products
+
     except Exception as error:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(error))
 
