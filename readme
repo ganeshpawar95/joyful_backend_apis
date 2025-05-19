@@ -1,5 +1,5 @@
 
-this repo for smart tutor boilerplate dev "don't" use it for productions
+this repo for  joyful boilerplate dev "don't" use it for productions
 
 
 Dev API:
@@ -9,8 +9,8 @@ Dev API:
 Run local:
     1.Run command below to setup environment
     1."create new branch" using "boilerplate"
-    2.conda create --name smart_tutor python=3.10
-    3.conda activate smart_tutor
+    2.conda create --name joyful python=3.10
+    3.conda activate joyful
     4.pip install -r requirements.txt
     2.Run command below to start the api
     run "uvicorn app.main:app --host 0.0.0.0 --port 8000"
