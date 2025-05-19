@@ -290,15 +290,16 @@ def product_add_to_cart(payload: AddToCartPayload, db: Session = Depends(get_db)
         )
         if cart_details is not None:
             tags = payload.tag_options if payload.tag_options else None
-            for objs in tags:
-                create_record(
-                    db,
-                    order_selected_tags,
-                    product_id=payload.product_id,
-                    cart_id=cart_details.id,
-                    tag_name=objs["name"],
-                    tag_data=objs["data"],
-                )
+            if tags is not None:
+                for objs in tags:
+                    create_record(
+                        db,
+                        order_selected_tags,
+                        product_id=payload.product_id,
+                        cart_id=cart_details.id,
+                        tag_name=objs["name"],
+                        tag_data=objs["data"],
+                    )
 
         return {"message": "Product  added in cart successfully"}
 
@@ -511,7 +512,7 @@ def create_product_order(
         # ✅ Delete cart item
         db.query(Carts).filter(Carts.session_id == session_id).delete()
         # db.delete(product)
-        # db.commit()
+        db.commit()
         # create order in Razorpay
         return {
             "message": "Payment created successfully",
