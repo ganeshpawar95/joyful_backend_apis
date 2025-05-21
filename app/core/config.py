@@ -56,6 +56,8 @@ class Settings(BaseSettings):
 
     SQLITE_DB_FILE: str = Field("database.db", env="SQLITE_DB_FILE")
     TABLE_PREFIX: str = "prod_"
+    IMAGE_URL: str = "http://0.0.0.0:8000/"
+    WEB_URL: str = "http://localhost:3000/order-tracking/"
     # Directory to Save Banners
     BANNER_DIR: str = "images/banners"
     product_DIR: str = "images/products"
@@ -69,6 +71,13 @@ class Settings(BaseSettings):
     os.makedirs(BASE_IMG_DIR, exist_ok=True)
     os.makedirs(PRODUCT_IMG_DIR, exist_ok=True)
     os.makedirs(PRODUCT_REVIEW_DIR, exist_ok=True)
+
+    # aws
+    AWS_ACCESS_KEY: str = Field(..., env="AWS_ACCESS_KEY")
+    AWS_SECRET_KEY: str = Field(..., env="AWS_SECRET_KEY")
+    AWS_REGION: str = Field(..., env="AWS_REGION")
+
+    S3_BUCKET_NAME: str = Field(..., env="S3_BUCKET_NAME")
 
     @computed_field  # type: ignore[misc]
     @property

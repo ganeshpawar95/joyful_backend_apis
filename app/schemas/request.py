@@ -82,6 +82,7 @@ class AddToCartPayload(SQLModel):
 class OrderCreatePayload(BaseModel):
     username: str
     phone: str
+    email: str
     user_email: str
     user_fname: str
     user_lname: str

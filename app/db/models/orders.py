@@ -61,6 +61,7 @@ class Orders(ItemBase, table=True):
         foreign_key="user_shipping_address.id", nullable=False
     )
     paid_amount: int = Field(nullable=True, index=True)
+    invoice: str = Field(nullable=True, index=True)
 
 
 class Payment_details(ItemBase, table=True):

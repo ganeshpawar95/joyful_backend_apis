@@ -22,16 +22,20 @@ from app.services.modal_services import (
     get_record_by_filters,
     get_record_by_filters_all,
 )
-from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, UploadFile, File
 from sqlalchemy.orm import Session
 from app.core.config import Settings
-from app.core import security
+from app.core.mail_conf import mail_conf
 from app.db.session import get_db
 from fastapi import HTTPException, status
 from sqlalchemy.orm import joinedload, contains_eager
 from sqlalchemy.sql import func
 
 from app.utils.helpers import generate_order_id
+from app.utils.task import generate_pdf_and_upload_to_s3, order_email_sent
+from fastapi_mail import FastMail, MessageSchema, MessageType
+from jinja2 import Environment, FileSystemLoader
+
 import razorpay
 
 router = APIRouter()
@@ -390,7 +394,10 @@ def create_product_order(total_amount: int, db: Session = Depends(get_db)):
 
 @router.post("/product/verify/order/")
 def create_product_order(
-    session_id: str, payload: OrderCreatePayload, db: Session = Depends(get_db)
+    session_id: str,
+    background_tasks: BackgroundTasks,
+    payload: OrderCreatePayload,
+    db: Session = Depends(get_db),
 ):
     try:
         # verify payments
@@ -404,6 +411,7 @@ def create_product_order(
             user = User(
                 username=payload.username,
                 phone=payload.phone,
+                email=payload.email,
                 password=payload.phone,
                 status="active",
             )
@@ -514,6 +522,71 @@ def create_product_order(
         # db.delete(product)
         db.commit()
         # create order in Razorpay
+
+        # Get order product details
+        order_details = (
+            db.query(Order_details).filter(Order_details.order_id == order.id).all()
+        )
+
+        product_details = []
+        for order_det_obj in order_details:
+            product = (
+                db.query(Products)
+                .filter(Products.id == order_det_obj.product_id)
+                .first()
+            )
+            product_details.append(
+                {
+                    "product_id": product.id,
+                    "product_name": product.product_name,
+                    "price": product.price,
+                    "is_digital": product.is_digital,
+                    "thumbnail": product.thumbnail,
+                    "thumbnail_url": settings.IMAGE_URL + product.thumbnail,
+                    "certificate_color": order_det_obj.certificate_color,
+                    "frame_color": order_det_obj.frame_color,
+                }
+            )
+
+        # ✅ Build final order object
+        order_obj = {
+            "txn_id": order.txn_id,
+            "user": {
+                "id": user.id,
+                "username": user.username,
+                "phone": user.phone,
+            },
+            "shipping_address": {
+                "user_email": shipping.user_email,
+                "full_name": shipping.user_fname + " " + shipping.user_lname,
+                "user_fname": shipping.user_fname,
+                "user_lname": shipping.user_lname,
+                "user_address": shipping.user_address,
+                "city": shipping.city,
+                "state": shipping.state,
+                "pincode": shipping.pincode,
+                "country": shipping.country,
+                "contact_mobile": shipping.contact_mobile,
+            },
+            "products": product_details,
+            "total_amount": order.total_amount,
+            "amount": int(order.total_amount) - int(order.shipping_fee),
+            "shipping_fee": order.shipping_fee,
+            "paid_amount": order.paid_amount,
+            "WEB_URL": settings.WEB_URL + order.txn_id,
+        }
+
+        background_tasks.add_task(order_email_sent, email_to=user.email, data=order_obj)
+
+        # generate_pdf_and_upload_to_s3
+        background_tasks.add_task(
+            generate_pdf_and_upload_to_s3,
+            db=db,
+            file_name="order_invoice",
+            data=order_obj,
+            order_id=order.txn_id,
+        )
+
         return {
             "message": "Payment created successfully",
             "order_id": order.id,
@@ -529,7 +602,9 @@ def create_product_order(
 
 # get order full details by order id
 @router.get("/product/order/details/{order_id}")
-def get_cart_details(order_id: str, db: Session = Depends(get_db)):
+def get_cart_details(
+    order_id: str, background_tasks: BackgroundTasks, db: Session = Depends(get_db)
+):
     try:
         orders = db.query(Orders).filter(Orders.txn_id == order_id).first()
         if not orders:
@@ -564,6 +639,9 @@ def get_cart_details(order_id: str, db: Session = Depends(get_db)):
                     "price": product.price,
                     "is_digital": product.is_digital,
                     "thumbnail": product.thumbnail,
+                    "thumbnail_url": settings.IMAGE_URL + product.thumbnail,
+                    "certificate_color": order_det_obj.certificate_color,
+                    "frame_color": order_det_obj.frame_color,
                 }
             )
 
@@ -590,6 +668,9 @@ def get_cart_details(order_id: str, db: Session = Depends(get_db)):
             },
             "shipping_address": {
                 "user_email": shipping_address.user_email,
+                "full_name": shipping_address.user_fname
+                + " "
+                + shipping_address.user_lname,
                 "user_fname": shipping_address.user_fname,
                 "user_lname": shipping_address.user_lname,
                 "user_address": shipping_address.user_address,
@@ -602,11 +683,30 @@ def get_cart_details(order_id: str, db: Session = Depends(get_db)):
             "products": product_details,
             "order_status": order_status_list,
             "total_amount": orders.total_amount,
+            "amount": int(orders.total_amount) - int(orders.shipping_fee),
             "shipping_fee": orders.shipping_fee,
             "paid_amount": orders.paid_amount,
+            "invoice_url": orders.invoice,
             # "order_status_current": orders.order_status,
         }
         return order_obj  # return in list to match response_model
 
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
+
+
+@router.post("/send-email/")
+async def send_email(email_to: str, subject: str):
+    env = Environment(loader=FileSystemLoader("templates"))
+    template = env.get_template("index.html")
+    html_content = template.render(user_name="John Doe")
+
+    message = MessageSchema(
+        subject=subject,
+        recipients=[email_to],
+        body=html_content,
+        subtype=MessageType.html,  # or .plain for plain text
+    )
+    fm = FastMail(mail_conf)
+    await fm.send_message(message)
+    return {"message": "Email sent successfully via Outlook"}
