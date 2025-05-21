@@ -32,3 +32,4 @@ razorpay
 python-multipart
 pdfkit==1.0.0
 fastapi-mail
+boto3
