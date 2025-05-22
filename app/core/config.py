@@ -65,6 +65,7 @@ class Settings(BaseSettings):
 
     PRODUCT_IMG_DIR: str = "images/products/banners"
     PRODUCT_REVIEW_DIR: str = "images/reviews"
+    TEMPLATE_DIR: str = os.path.join(os.getcwd(), "templates")
 
     os.makedirs(BANNER_DIR, exist_ok=True)
     os.makedirs(product_DIR, exist_ok=True)

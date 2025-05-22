@@ -1,4 +1,5 @@
 from io import BytesIO
+import os
 from app.core.mail_conf import mail_conf
 from app.db.models.orders import Orders
 from fastapi_mail import FastMail, MessageSchema, MessageType
@@ -19,7 +20,7 @@ async def order_email_sent(email_to, data):
         today = datetime.today()
         # Add 4 days
         next_date = today + timedelta(days=4)
-        env = Environment(loader=FileSystemLoader("templates"))
+        env = Environment(loader=FileSystemLoader(settings.TEMPLATE_DIR))
         template = env.get_template("index.html")
         html_content = template.render(
             data=data,
@@ -76,7 +77,7 @@ def generate_pdf_and_upload_to_s3(
         next_date = today + timedelta(days=4)
 
         # Load the Jinja2 template
-        env = Environment(loader=FileSystemLoader("templates"))
+        env = Environment(loader=FileSystemLoader(settings.TEMPLATE_DIR))
         template = env.get_template("index.html")
         html_content = template.render(
             data=data,
