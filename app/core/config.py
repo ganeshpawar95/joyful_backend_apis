@@ -65,7 +65,6 @@ class Settings(BaseSettings):
 
     PRODUCT_IMG_DIR: str = "images/products/banners"
     PRODUCT_REVIEW_DIR: str = "images/reviews"
-    TEMPLATE_DIR: str = "/home/ubuntu/joyful_backend_apis/templates"
     # os.path.join(os.getcwd(), "templates")
 
     os.makedirs(BANNER_DIR, exist_ok=True)

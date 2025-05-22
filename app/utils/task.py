@@ -10,7 +10,14 @@ from app.core.config import Settings
 import boto3
 import pdfkit
 
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+TEMPLATE_DIR = os.path.join(BASE_DIR, "templates")
+env = Environment(loader=FileSystemLoader(TEMPLATE_DIR))
+template = env.get_template("index.html")
 
+print("BASE_DIR", BASE_DIR)
+print("TEMPLATE_DIR", TEMPLATE_DIR)
+print("env", env)
 settings = Settings()
 
 
@@ -20,8 +27,6 @@ async def order_email_sent(email_to, data):
         today = datetime.today()
         # Add 4 days
         next_date = today + timedelta(days=4)
-        env = Environment(loader=FileSystemLoader(settings.TEMPLATE_DIR))
-        template = env.get_template("index.html")
         html_content = template.render(
             data=data,
             order_placed_date=next_date.strftime("%Y-%m-%d"),
@@ -77,8 +82,6 @@ def generate_pdf_and_upload_to_s3(
         next_date = today + timedelta(days=4)
 
         # Load the Jinja2 template
-        env = Environment(loader=FileSystemLoader(settings.TEMPLATE_DIR))
-        template = env.get_template("index.html")
         html_content = template.render(
             data=data,
             order_placed_date=next_date.strftime("%Y-%m-%d"),

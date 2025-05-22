@@ -1,3 +1,4 @@
+import os
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
@@ -5,12 +6,16 @@ from app.api.main import api_router
 from app.core.config import settings
 from app.db.session import engine
 from sqlmodel import SQLModel
+from jinja2 import Environment, FileSystemLoader
+
 
 # Define the lifespan function
 def lifespan(app: FastAPI):
     # Code executed on startup
     SQLModel.metadata.create_all(bind=engine)
     yield  # App runs here
+
+
 app = FastAPI(
     root_path="/api",
     lifespan=lifespan,
@@ -19,7 +24,7 @@ app = FastAPI(
     version="1.0.0",
     docs_url="/docs",  # Change Swagger UI path
     redoc_url="/redoc",  # Change ReDoc path
-    )
+)
 
 origins = ["*"]
 
@@ -34,4 +39,6 @@ app.add_middleware(
 app.include_router(api_router, prefix=settings.API_V1_STR)
 
 # Serve Banner Images
-app.mount("/images", StaticFiles(directory="."), name="images")  # Serves banners under /static/
+app.mount(
+    "/images", StaticFiles(directory="."), name="images"
+)  # Serves banners under /static/
