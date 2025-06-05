@@ -122,7 +122,7 @@
   <body>
     <!-- header table -->
     <table>
-      <tbody style="background-color: #0eb6ea">
+      <tbody style="background-color: #dcf4fb">
         <tr>
           <td style="padding: 10px 20px">
             <img
@@ -132,12 +132,12 @@
             />
           </td>
           <td style="padding: 10px 20px; text-align: center">
-            <h4 style="color: #fff; font-weight: 500; font-size: 25px">
+            <h4 style="color: #000; font-weight: 500; font-size: 25px">
               Order Confirmation
             </h4>
             <p
               style="
-                color: #fff;
+                color: #000;
                 font-weight: 500;
                 font-size: 16px;
                 margin-top: 8px;
@@ -158,13 +158,13 @@
               Hi <span style="color: #ef5029">{{data.user.username}}</span>
             </p>
             <p style="font-size: 18px; margin-bottom: 10px; line-height: 25px">
-              our Joyfulsurprises order has been placed successfully.
+              Your Joyfulsurprises order has been placed successfully.
             </p>
             <p style="font-size: 18px; margin-bottom: 10px; line-height: 25px">
               Thank you for shopping with us! We hope to deliver this order by
               <span style="color: #ef5029">Date - {{order_placed_date}}</span>
               . Once Packed and shipped, we shall update you on the promised
-              date of delivery
+              date of delivery.
             </p>
           </td>
         </tr>
@@ -306,7 +306,7 @@
                                   <td>
                                     <h4>{{item.product_name}}</h4>
                                   </td>
-                                  <td>
+                                  <td style="text-align: end">
                                     <h4>&#8377;{{item.price}}</h4>
                                   </td>
                                 </tr>
@@ -420,25 +420,9 @@
                                 margin-bottom: 5px;
                               "
                             >
-                              <span style="color: #ef5029">Credit Card</span>
-                            </p>
-                            <p
-                              style="
-                                font-weight: 600;
-                                font-size: 16px;
-                                margin-bottom: 5px;
-                              "
-                            >
-                              <span style="color: #ef5029">UPI</span>
-                            </p>
-                            <p
-                              style="
-                                font-weight: 600;
-                                font-size: 16px;
-                                margin-bottom: 5px;
-                              "
-                            >
-                              <span style="color: #ef5029">Netbanking</span>
+                              <span style="color: #ef5029"
+                                >{{data.payment_methods}}</span
+                              >
                             </p>
                           </td>
                         </tr>
@@ -520,7 +504,7 @@
                                 margin-top: 5px;
                               "
                             >
-                              Supp ort@joyfulsurpris es.in
+                              support@joyfulsurprises.in
                             </h4>
                           </td>
                         </tr>
@@ -581,7 +565,7 @@
                           </td>
                         </tr>
                         <tr>
-                          <td colspan="3" style="padding: 15px 15px">
+                          <td colspan="3" style="padding: 15px 0px">
                             <div
                               style="
                                 display: flex;
@@ -615,42 +599,52 @@
                       <tbody>
                         <tr>
                           <td style="padding: 10px 30px; text-align: center">
-                            <div
-                              style="
-                                display: flex;
-                                justify-content: center;
-                                align-items: center;
-                                column-gap: 10px;
-                              "
+                            <a
+                              href="https://www.instagram.com/joyful.surprises/"
+                              style="text-decoration: none; color: #000"
                             >
-                              <img
-                                src="https://joyfulsurprises-buckets.s3.ap-south-2.amazonaws.com/instagram.png"
-                                style="height: 30px"
-                                alt=""
-                              />
-                              <span style="font-size: 20px"
-                                >joyful.surprises
-                              </span>
-                            </div>
+                              <div
+                                style="
+                                  display: flex;
+                                  justify-content: center;
+                                  align-items: center;
+                                  column-gap: 10px;
+                                "
+                              >
+                                <img
+                                  src="https://joyfulsurprises-buckets.s3.ap-south-2.amazonaws.com/instagram.png"
+                                  style="height: 30px"
+                                  alt=""
+                                />
+                                <span style="font-size: 20px; margin-left: 3px"
+                                  >joyful.surprises
+                                </span>
+                              </div>
+                            </a>
                           </td>
                           <td style="padding: 10px 30px">
-                            <div
-                              style="
-                                display: flex;
-                                justify-content: center;
-                                align-items: center;
-                                column-gap: 10px;
-                              "
+                            <a
+                              href="https://www.facebook.com/joyfulsurprises.in"
+                              style="text-decoration: none; color: #000"
                             >
-                              <img
-                                src="https://joyfulsurprises-buckets.s3.ap-south-2.amazonaws.com/facebook.png"
-                                style="height: 30px"
-                                alt=""
-                              />
-                              <span style="font-size: 20px"
-                                >joyfulsurprises.in</span
+                              <div
+                                style="
+                                  display: flex;
+                                  justify-content: center;
+                                  align-items: center;
+                                  column-gap: 10px;
+                                "
                               >
-                            </div>
+                                <img
+                                  src="https://joyfulsurprises-buckets.s3.ap-south-2.amazonaws.com/facebook.png"
+                                  style="height: 30px"
+                                  alt=""
+                                />
+                                <span style="font-size: 20px; margin-left: 3px"
+                                  >joyfulsurprises.in</span
+                                >
+                              </div>
+                            </a>
                           </td>
                         </tr>
                       </tbody>

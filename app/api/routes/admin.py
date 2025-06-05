@@ -4,7 +4,9 @@ import os
 import shutil
 from typing import Optional
 from app.db.models.banner import Banners
+from app.db.models.orders import Orders
 from app.db.models.product import *
+from app.db.models.user import User, User_shipping_address
 from app.schemas.request import UpdateProductPayload
 from app.schemas.response import (
     ProductFrameCreate,
@@ -320,5 +322,33 @@ def add_product_tag_options(payload: ProductTagCreate, db: Session = Depends(get
             ),
         )
         return {"message": "Product tag added successfully"}
+    except Exception as error:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(error))
+
+
+# order list
+@router.get("/order/list/")
+def get_order_list(db: Session = Depends(get_db)):
+    try:
+        orders = db.query(Orders).all()
+        order_res = []
+        for order in orders:
+            shipping_address = (
+                db.query(User_shipping_address)
+                .filter(User_shipping_address.id == order.shipping_address)
+                .first()
+            )
+
+            user = db.query(User).filter(User.id == order.user_id).first()
+
+            order_data = order.__dict__.copy()
+            order_data["shipping_address"] = shipping_address
+            order_data["user"] = user
+            order_data.pop(
+                "_sa_instance_state", None
+            )  # remove SQLAlchemy internal attribute
+            order_res.append(order_data)
+
+        return order_res
     except Exception as error:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(error))

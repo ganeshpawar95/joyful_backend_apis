@@ -402,7 +402,6 @@ def create_product_order(
     try:
         # verify payments
         payment = razorpay_client.payment.fetch(payload.payment_id)
-        print("payment", payment)
         if payment is None:
             raise ValueError("Payment not found")
         # 1. Get or create user
@@ -574,9 +573,12 @@ def create_product_order(
             "shipping_fee": order.shipping_fee,
             "paid_amount": order.paid_amount,
             "WEB_URL": settings.WEB_URL + order.txn_id,
+            "payment_methods": payment["method"],
         }
 
-        background_tasks.add_task(order_email_sent, email_to=user.email, data=order_obj)
+        background_tasks.add_task(
+            order_email_sent, email_to=payload.email, data=order_obj
+        )
 
         # generate_pdf_and_upload_to_s3
         background_tasks.add_task(
@@ -693,20 +695,3 @@ def get_cart_details(
 
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
-
-
-@router.post("/send-email/")
-async def send_email(email_to: str, subject: str):
-    env = Environment(loader=FileSystemLoader("templates"))
-    template = env.get_template("index.html")
-    html_content = template.render(user_name="John Doe")
-
-    message = MessageSchema(
-        subject=subject,
-        recipients=[email_to],
-        body=html_content,
-        subtype=MessageType.html,  # or .plain for plain text
-    )
-    fm = FastMail(mail_conf)
-    await fm.send_message(message)
-    return {"message": "Email sent successfully via Outlook"}

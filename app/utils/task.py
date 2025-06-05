@@ -42,7 +42,7 @@ async def order_email_sent(email_to, data):
         fm = FastMail(mail_conf)
         await fm.send_message(message)
     except Exception as error:
-        print("error", error)
+        print("error email", email_to, error)
 
 
 # S3 Client
