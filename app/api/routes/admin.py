@@ -12,8 +12,8 @@ from app.db.models.orders import (
     order_selected_tags,
 )
 from app.db.models.product import *
-from app.db.models.user import User, User_shipping_address
-from app.schemas.request import UpdateProductPayload
+from app.db.models.user import SettingsModel, User, User_shipping_address
+from app.schemas.request import SettingsSchema, UpdateProductPayload
 from app.schemas.response import (
     ProductFrameCreate,
     ProductReviewCreate,
@@ -27,6 +27,7 @@ from app.core import security
 from app.db.session import get_db
 from fastapi import HTTPException, status
 from typing import List
+from sqlalchemy.exc import SQLAlchemyError
 
 
 router = APIRouter()
@@ -139,6 +140,58 @@ async def create_category(
             + cat_mobile_img.filename,  # Store image path
         )
         return {"message": "Category created successfully"}
+    except Exception as error:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(error))
+
+
+# create api for update category
+@router.put("/category/update/{category_id}/")
+async def update_category(
+    category_id: int,
+    cat_name: str = Form(...),
+    cat_priority: int = Form(...),
+    cat_img: Optional[UploadFile] = File(None),
+    cat_mobile_img: Optional[UploadFile] = File(None),
+    db: Session = Depends(get_db),
+):
+    try:
+        category = db.query(Category).filter(Category.id == category_id).first()
+        if not category:
+            raise HTTPException(status_code=404, detail="Category not found")
+
+        cat_img_path = category.cat_img
+        cat_mobile_img_path = category.cat_mobile_img
+
+        # Update cat_img if new file is provided
+        if cat_img:
+            if cat_img_path and os.path.exists(cat_img_path):
+                os.remove(cat_img_path)
+            cat_img_path = os.path.join(setting.CATEGORY_DIR, cat_img.filename)
+            with open(cat_img_path, "wb") as buffer:
+                shutil.copyfileobj(cat_img.file, buffer)
+
+        # Update cat_mobile_img if new file is provided
+        if cat_mobile_img:
+            if cat_mobile_img_path and os.path.exists(cat_mobile_img_path):
+                os.remove(cat_mobile_img_path)
+            cat_mobile_img_path = os.path.join(
+                setting.CATEGORY_DIR, cat_mobile_img.filename
+            )
+            with open(cat_mobile_img_path, "wb") as buffer:
+                shutil.copyfileobj(cat_mobile_img.file, buffer)
+
+        update_record(
+            db,
+            Category,
+            filters={"id": category_id},
+            updates={
+                "cat_name": cat_name,
+                "cat_priority": cat_priority,
+                "cat_img": cat_img_path,
+                "cat_mobile_img": cat_mobile_img_path,
+            },
+        )
+        return {"message": "Category updated successfully"}
     except Exception as error:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(error))
 
@@ -1090,3 +1143,42 @@ def update_order_status(
         }
     except Exception as error:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(error))
+
+
+# settings
+@router.post("/settings/add-or-update/")
+def add_or_update_settings(payload: SettingsSchema, db: Session = Depends(get_db)):
+    try:
+        settings = db.query(SettingsModel).first()
+        if settings:
+            # Update existing settings
+            settings.pricesWithTax = payload.pricesWithTax
+            settings.pricesWithShipping = payload.pricesWithShipping
+            settings.taxRate = payload.taxRate
+            settings.shippingCharges = payload.shippingCharges
+            db.commit()
+            db.refresh(settings)
+            return {"message": "Settings updated successfully"}
+        else:
+            # Create new settings
+            new_settings = SettingsModel(
+                pricesWithTax=payload.pricesWithTax,
+                pricesWithShipping=payload.pricesWithShipping,
+                taxRate=payload.taxRate,
+                shippingCharges=payload.shippingCharges,
+            )
+            db.add(new_settings)
+            db.commit()
+            db.refresh(new_settings)
+            return {"message": "Settings created successfully"}
+    except SQLAlchemyError as error:
+        raise HTTPException(status_code=400, detail=str(error))
+
+
+@router.get("/settings/list/")
+def list_settings(db: Session = Depends(get_db)):
+    try:
+        settings = db.query(SettingsModel).first()
+        return settings
+    except SQLAlchemyError as error:
+        raise HTTPException(status_code=400, detail=str(error))

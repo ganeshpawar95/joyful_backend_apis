@@ -56,6 +56,9 @@ class Orders(ItemBase, table=True):
     user_id: int = Field(foreign_key="users.id", nullable=False)
     txn_id: str = Field(nullable=True, index=True)
     shipping_fee: str = Field(nullable=True, index=True)
+    c_gst: int = Field(nullable=True, index=True)
+    s_gst: int = Field(nullable=True, index=True)
+    sub_total: int = Field(nullable=True, index=True)
     total_amount: int = Field(nullable=True, index=True)
     shipping_address: int = Field(
         foreign_key="user_shipping_address.id", nullable=False

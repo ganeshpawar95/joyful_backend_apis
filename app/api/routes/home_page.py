@@ -14,7 +14,7 @@ from app.db.models.orders import (
     order_selected_tags,
 )
 from app.db.models.product import *
-from app.db.models.user import User, User_shipping_address
+from app.db.models.user import SettingsModel, User, User_shipping_address
 from app.schemas.request import AddToCartPayload, OrderCreatePayload
 from app.schemas.response import CartDetailsResponse, ProductResponse, TagOptionResponse
 from app.services.modal_services import (
@@ -31,7 +31,7 @@ from fastapi import HTTPException, status
 from sqlalchemy.orm import joinedload, contains_eager
 from sqlalchemy.sql import func
 
-from app.utils.helpers import generate_order_id
+from app.utils.helpers import generate_order_id, get_c_gst_s_gst
 from app.utils.task import generate_pdf_and_upload_to_s3, order_email_sent
 from fastapi_mail import FastMail, MessageSchema, MessageType
 from jinja2 import Environment, FileSystemLoader
@@ -446,11 +446,18 @@ def create_product_order(
         db.refresh(shipping)
 
         # 3. Create main order
+        settings_details = db.query(SettingsModel).first()
+
+        amount_with_shipping = int(payload.total_amount) - int(payload.shipping_fee)
+        gst = get_c_gst_s_gst(amount_with_shipping, settings_details)
         order = Orders(
             user_id=user.id,
             total_amount=payload.total_amount,
             shipping_fee=payload.shipping_fee,
             shipping_address=shipping.id,
+            sub_total=gst["subtotal"],
+            c_gst=gst["cgst"],
+            s_gst=gst["sgst"],
             paid_amount=payload.total_amount,
             txn_id=payment["order_id"],
         )
@@ -582,9 +589,16 @@ def create_product_order(
             "amount": int(order.total_amount) - int(order.shipping_fee),
             "shipping_fee": order.shipping_fee,
             "paid_amount": order.paid_amount,
+            "subtotal": order.sub_total,
+            "c_gst": order.c_gst,
+            "s_gst": order.s_gst,
+            "cgst_rate": gst["cgst_rate"],
+            "sgst_rate": gst["sgst_rate"],
             "WEB_URL": settings.WEB_URL + order.txn_id,
             "payment_methods": payment["method"],
         }
+
+        print("order_obj", order_obj)
 
         background_tasks.add_task(
             order_email_sent, email_to=payload.email, data=order_obj
@@ -697,6 +711,9 @@ def get_cart_details(
             "total_amount": orders.total_amount,
             "amount": int(orders.total_amount) - int(orders.shipping_fee),
             "shipping_fee": orders.shipping_fee,
+            "subtotal": orders.sub_total,
+            "c_gst": orders.c_gst,
+            "s_gst": orders.s_gst,
             "paid_amount": orders.paid_amount,
             "invoice_url": orders.invoice,
             # "order_status_current": orders.order_status,

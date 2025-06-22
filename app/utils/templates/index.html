@@ -330,13 +330,19 @@
                             style="text-align: end; padding: 5px 0px"
                           >
                             <p style="font-size: 16px; margin-bottom: 5px">
-                              Sub Total {{data.amount}}
+                              Sub Total {{data.subtotal}}
                             </p>
                             <p style="font-size: 16px; margin-bottom: 5px">
-                              Tax 0.00
+                              CGST ({{data.cgst_rate}}%) {{data.c_gst}}
+                            </p>
+                            <p style="font-size: 16px; margin-bottom: 5px">
+                              SGST ({{data.sgst_rate}}9%) {{data.c_gst}}
                             </p>
                             <p style="font-size: 16px; margin-bottom: 5px">
                               Delivery Fee {{data.shipping_fee}}
+                            </p>
+                            <p style="font-size: 16px; margin-bottom: 5px">
+                              Total Amount {{data.total_amount}}
                             </p>
                           </td>
                         </tr>

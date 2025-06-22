@@ -82,3 +82,10 @@ class OrderCreatePayload(BaseModel):
     shipping_fee: int
     total_amount: int
     payment_id: str
+
+
+class SettingsSchema(BaseModel):
+    pricesWithTax: str
+    pricesWithShipping: str
+    taxRate: int
+    shippingCharges: int
