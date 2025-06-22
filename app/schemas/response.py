@@ -30,7 +30,7 @@ class TokenResponse(SQLModel):
 
 class B2BLoginResponse(SQLModel):
     email: str
-    phone: str
+    password: str
 
 
 class NotificationPublic(BaseModel):

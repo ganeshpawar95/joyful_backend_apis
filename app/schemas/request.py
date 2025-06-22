@@ -16,20 +16,9 @@ class LoginRequest(SQLModel):
 
 
 class UserCreate(SQLModel):
-    username: str = Field(nullable=False, min_length=3, max_length=50)
+    username: Optional[str] = Field(default=None, max_length=100)
     email: Optional[str] = Field(default=None, max_length=100)
-    phone: Optional[str] = Field(default=None, max_length=15)
     password: str = Field(nullable=False, min_length=5, max_length=100)
-    profile_pic: str = Field(default="", nullable=True)
-    grade: str = Field(nullable=False, max_length=10)
-    student_board: str = Field(nullable=False, max_length=50)
-    country: str = Field(nullable=False, max_length=50)
-
-    @staticmethod
-    def validate_email_or_phone(email: str, phone: str):
-        if not email and not phone:
-            raise ValueError("Either email or phone must be provided.")
-        return True
 
     class Config:
         validate_assignment = True
@@ -41,9 +30,6 @@ class UserResponse(SQLModel):
     email: str = ("",)
     phone: str = ""
     profile_pic: str = ""
-    grade: str
-    student_board: str
-    country: str
 
 
 class UserUpdate(SQLModel):

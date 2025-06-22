@@ -4,7 +4,7 @@ import os
 import shutil
 from typing import List
 from uuid import uuid4
-from app.db.models.banner import Banners
+from app.db.models.banner import Banners, Category
 from app.db.models.carts import Carts
 from app.db.models.orders import (
     Order_details,
@@ -51,6 +51,15 @@ razorpay_client = razorpay.Client(
 def get_banners(db: Session = Depends(get_db)):
     try:
         banners = db.query(Banners).all()
+        return banners
+    except Exception as error:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(error))
+
+
+@router.get("/category/list/")
+def get_category(db: Session = Depends(get_db)):
+    try:
+        banners = db.query(Category).all()
         return banners
     except Exception as error:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(error))
@@ -483,14 +492,15 @@ def create_product_order(
             db.refresh(order_detail)
 
             # Move associated tags from cart to order
-            tag = (
+            tag_list = (
                 db.query(order_selected_tags)
                 .filter(order_selected_tags.cart_id == product.id)
-                .first()
+                .all()
             )
-            if tag:
+
+            for tag in tag_list:
                 tag.cart_id = None
-                tag.order_id = order_detail.id
+                tag.order_id = order.id
                 db.commit()
                 db.refresh(tag)
 
@@ -511,7 +521,7 @@ def create_product_order(
         create_record(
             db,
             Orders_status,
-            order_status="Pending",
+            order_status="Processing",
             order_id=order.id,
             user_id=user.id,
         )

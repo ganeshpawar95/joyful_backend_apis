@@ -3,7 +3,6 @@ from pathlib import Path
 import warnings
 from typing import Annotated, Any, Literal
 from dotenv import load_dotenv
-import razorpay
 
 from pydantic import (
     AnyUrl,
@@ -60,6 +59,8 @@ class Settings(BaseSettings):
     WEB_URL: str = "http://18.61.79.151/order-tracking/"
     # Directory to Save Banners
     BANNER_DIR: str = "images/banners"
+    CATEGORY_DIR: str = "images/categories"
+
     product_DIR: str = "images/products"
     BASE_IMG_DIR: str = "images/"
 

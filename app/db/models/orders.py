@@ -34,7 +34,7 @@ class Order_details(ItemBase, table=True):  # Use table=True to indicate this is
     amount: int = Field(nullable=True, index=True)
     user_id: int = Field(foreign_key="users.id", nullable=False)
     product_id: int = Field(foreign_key="products.id", nullable=False)
-    quantity: int = Field(nullable=True, index=True, max_length=100)
+    quantity: int = Field(nullable=True, index=True)
     order_id: int = Field(foreign_key="orders.id", nullable=False)
     certificate_color: str = Field(nullable=False, index=True)
     frame_color: str = Field(nullable=False, index=True)
