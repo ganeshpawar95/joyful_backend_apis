@@ -73,6 +73,7 @@ class Settings(BaseSettings):
     os.makedirs(BASE_IMG_DIR, exist_ok=True)
     os.makedirs(PRODUCT_IMG_DIR, exist_ok=True)
     os.makedirs(PRODUCT_REVIEW_DIR, exist_ok=True)
+    os.makedirs(CATEGORY_DIR, exist_ok=True)
 
     # aws
     AWS_ACCESS_KEY: str = Field(..., env="AWS_ACCESS_KEY")
