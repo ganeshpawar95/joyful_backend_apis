@@ -50,6 +50,13 @@ import httpx
 router = APIRouter()
 settings = Settings()
 
+headers = {
+    "x-client-id": settings.RAZORPAY_KEY_ID,
+    "x-client-secret": settings.RAZORPAY_KEY_SECRET,
+    "x-api-version": "2022-09-01",  # Required!
+    "Content-Type": "application/json",
+}
+
 
 # 1.banner list api
 # API to Get All Banners
@@ -504,13 +511,6 @@ def get_cart_details(
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
 
-
-headers = {
-    "x-client-id": "TEST10634350195f39e7a74c17f76fd105343601",
-    "x-client-secret": "cfsk_ma_test_df82f2c52e2886b6946b969b20e32b14_069e556d",
-    "x-api-version": "2022-09-01",  # Required!
-    "Content-Type": "application/json",
-}
 
 CASHFREE_API_BASE = "https://sandbox.cashfree.com/pg/orders"  # Use sandbox for testing
 
