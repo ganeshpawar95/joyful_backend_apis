@@ -22,7 +22,15 @@ from app.services.modal_services import (
     get_record_by_filters,
     get_record_by_filters_all,
 )
-from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, UploadFile, File,Request
+from fastapi import (
+    APIRouter,
+    BackgroundTasks,
+    Depends,
+    HTTPException,
+    UploadFile,
+    File,
+    Request,
+)
 from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 from app.core.config import Settings
@@ -37,15 +45,10 @@ from app.utils.task import generate_pdf_and_upload_to_s3, order_email_sent
 from fastapi_mail import FastMail, MessageSchema, MessageType
 from jinja2 import Environment, FileSystemLoader
 
-import razorpay
-
 import httpx
 
 router = APIRouter()
 settings = Settings()
-razorpay_client = razorpay.Client(
-    auth=("rzp_test_Km5OVlijd2UP0P", "CrIzUMqDpPNqsZzpqhhfM51A")
-)
 
 
 # 1.banner list api
@@ -379,30 +382,29 @@ def delete_cart_item(cart_id: int, db: Session = Depends(get_db)):
 
 
 # create order
-@router.post("/product/create/order/")
-def create_product_order(total_amount: int, db: Session = Depends(get_db)):
-    try:
-        # 1. Get or create user
-        razorpay_order = razorpay_client.order.create(
-            {
-                "amount": total_amount * 100,
-                "currency": "INR",
-                "receipt": generate_order_id(),
-                "payment_capture": 1,
-            }
-        )
-        return {
-            "message": "Order created successfully",
-            "razorpay_order": razorpay_order,
-        }
+# @router.post("/product/create/order/")
+# def create_product_order(total_amount: int, db: Session = Depends(get_db)):
+#     try:
+#         # 1. Get or create user
+#         razorpay_order = razorpay_client.order.create(
+#             {
+#                 "amount": total_amount * 100,
+#                 "currency": "INR",
+#                 "receipt": generate_order_id(),
+#                 "payment_capture": 1,
+#             }
+#         )
+#         return {
+#             "message": "Order created successfully",
+#             "razorpay_order": razorpay_order,
+#         }
 
-    except Exception as error:
-        db.rollback()
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Order creation failed: {str(error)}",
-        )
-
+#     except Exception as error:
+#         db.rollback()
+#         raise HTTPException(
+#             status_code=status.HTTP_400_BAD_REQUEST,
+#             detail=f"Order creation failed: {str(error)}",
+#         )
 
 
 # get order full details by order id
@@ -503,15 +505,15 @@ def get_cart_details(
         raise HTTPException(status_code=400, detail=str(e))
 
 
-
 headers = {
     "x-client-id": "TEST10634350195f39e7a74c17f76fd105343601",
     "x-client-secret": "cfsk_ma_test_df82f2c52e2886b6946b969b20e32b14_069e556d",
     "x-api-version": "2022-09-01",  # Required!
-    "Content-Type": "application/json"
+    "Content-Type": "application/json",
 }
 
 CASHFREE_API_BASE = "https://sandbox.cashfree.com/pg/orders"  # Use sandbox for testing
+
 
 @router.post("/product/create-order/")
 async def create_order(request: Request):
@@ -524,15 +526,13 @@ async def create_order(request: Request):
         "customer_details": {
             "customer_id": data["customer_id"],
             "customer_email": data["email"],
-            "customer_phone": data["phone"]
+            "customer_phone": data["phone"],
         },
-
     }
 
     async with httpx.AsyncClient() as client:
         response = await client.post(CASHFREE_API_BASE, headers=headers, json=payload)
         return JSONResponse(status_code=response.status_code, content=response.json())
-
 
 
 @router.get("/product/verify-order/{order_id}")
@@ -548,7 +548,7 @@ async def verify_order(order_id: str):
 @router.post("/product/verify/order/")
 async def create_product_order(
     session_id: str,
-    order_id:str,
+    order_id: str,
     background_tasks: BackgroundTasks,
     payload: OrderCreatePayload,
     db: Session = Depends(get_db),
@@ -559,17 +559,21 @@ async def create_product_order(
         async with httpx.AsyncClient() as client:
             response = await client.get(url, headers=headers)
 
-        payment= response.json()
+        payment = response.json()
         # print("payment",payment)
 
         if isinstance(payment, list):
             payment_detail = payment[0] if payment else None
         # If payment is a dict with a 'payment' key as a list, return the first
-        elif isinstance(payment, dict) and 'payment' in payment and isinstance(payment['payment'], list):
-            payment_detail = payment['payment'][0] if payment['payment'] else None
+        elif (
+            isinstance(payment, dict)
+            and "payment" in payment
+            and isinstance(payment["payment"], list)
+        ):
+            payment_detail = payment["payment"][0] if payment["payment"] else None
         else:
             payment_detail = payment
-        print("payment_detail",payment_detail)
+        print("payment_detail", payment_detail)
 
         # verify payments
         if payment is None:
@@ -731,7 +735,6 @@ async def create_product_order(
         # Get the method type: 'card', 'upi', 'netbanking', etc.
         method_type = next(iter(payment_method), None)
 
-
         order_obj = {
             "txn_id": order.txn_id,
             "user": {
@@ -762,9 +765,8 @@ async def create_product_order(
             "cgst_rate": gst["cgst_rate"],
             "sgst_rate": gst["sgst_rate"],
             "WEB_URL": settings.WEB_URL + order.txn_id,
-            "payment_methods":method_type,
+            "payment_methods": method_type,
         }
-
 
         background_tasks.add_task(
             order_email_sent, email_to=payload.email, data=order_obj
@@ -790,4 +792,3 @@ async def create_product_order(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=f"Order creation failed: {str(error)}",
         )
-
