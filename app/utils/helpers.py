@@ -29,24 +29,16 @@ def get_c_gst_s_gst(total_amount, setting_details):
 
     if getattr(setting_details, "pricesWithTax", "no") == "yes":
         gst_rate = getattr(setting_details, "taxRate", 0)  # e.g., 18
-        gst_decimal = gst_rate / 100.0
-        cgst_rate = sgst_rate = gst_decimal / 2
-
-        subtotal = total_amount / (1 + gst_decimal)
-        subtotal_rounded = round(subtotal, 2)
-
-        # First calculate CGST
-        cgst = round(subtotal_rounded * cgst_rate, 2)
-
+        print("gst_rate",gst_rate,(gst_rate / 100))
+        total_gst=(gst_rate / 100) * total_amount
+        subtotal = int(total_amount)-total_gst
         # Ensure total matches exactly by computing SGST as remainder
-        sgst = round(total_amount - subtotal_rounded - cgst, 2)
-
         result = {
-            "subtotal": subtotal_rounded,
-            "cgst": cgst,
-            "sgst": sgst,
-            "cgst_rate": round(cgst_rate, 2),
-            "sgst_rate": round(sgst_rate, 2),
+            "subtotal": subtotal,
+            "cgst": total_gst/2,
+            "sgst": total_gst/2,
+            "cgst_rate": int(gst_rate/2),
+            "sgst_rate": int(gst_rate/2),
         }
 
     return result

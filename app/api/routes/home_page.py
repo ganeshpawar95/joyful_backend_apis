@@ -22,7 +22,8 @@ from app.services.modal_services import (
     get_record_by_filters,
     get_record_by_filters_all,
 )
-from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, UploadFile, File
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, UploadFile, File,Request
+from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 from app.core.config import Settings
 from app.core.mail_conf import mail_conf
@@ -37,6 +38,8 @@ from fastapi_mail import FastMail, MessageSchema, MessageType
 from jinja2 import Environment, FileSystemLoader
 
 import razorpay
+
+import httpx
 
 router = APIRouter()
 settings = Settings()
@@ -401,230 +404,6 @@ def create_product_order(total_amount: int, db: Session = Depends(get_db)):
         )
 
 
-@router.post("/product/verify/order/")
-def create_product_order(
-    session_id: str,
-    background_tasks: BackgroundTasks,
-    payload: OrderCreatePayload,
-    db: Session = Depends(get_db),
-):
-    try:
-        # verify payments
-        payment = razorpay_client.payment.fetch(payload.payment_id)
-        if payment is None:
-            raise ValueError("Payment not found")
-        # 1. Get or create user
-        user = db.query(User).filter(User.phone == payload.phone).first()
-        if not user:
-            user = User(
-                username=payload.username,
-                phone=payload.phone,
-                email=payload.email,
-                password=payload.phone,
-                status="active",
-            )
-            db.add(user)
-            db.commit()
-            db.refresh(user)
-
-        # 2. Create user shipping address
-        shipping = User_shipping_address(
-            user_email=payload.user_email,
-            user_fname=payload.user_fname,
-            user_lname=payload.user_lname,
-            user_address=payload.user_address,
-            city=payload.city,
-            landmark=payload.landmark,
-            state=payload.state,
-            pincode=payload.pincode,
-            country=payload.country,
-            contact_mobile=payload.contact_mobile,
-            user_id=user.id,
-        )
-        db.add(shipping)
-        db.commit()
-        db.refresh(shipping)
-
-        # 3. Create main order
-        settings_details = db.query(SettingsModel).first()
-
-        amount_with_shipping = int(payload.total_amount) - int(payload.shipping_fee)
-        gst = get_c_gst_s_gst(amount_with_shipping, settings_details)
-        order = Orders(
-            user_id=user.id,
-            total_amount=payload.total_amount,
-            shipping_fee=payload.shipping_fee,
-            shipping_address=shipping.id,
-            sub_total=gst["subtotal"],
-            c_gst=gst["cgst"],
-            s_gst=gst["sgst"],
-            paid_amount=payload.total_amount,
-            txn_id=payment["order_id"],
-        )
-        db.add(order)
-        db.commit()
-        db.refresh(order)
-
-        # 4. Fetch cart items
-        carts = db.query(Carts).filter(Carts.session_id == session_id).all()
-        if not carts:
-            raise HTTPException(
-                status_code=404, detail="No cart items found for session"
-            )
-
-        # 5. Add order details and assign tags
-        for product in carts:
-            order_detail = Order_details(
-                user_id=user.id,
-                product_id=product.product_id,
-                order_id=order.id,
-                quantity=1,
-                certificate_color=(
-                    product.certificate_color
-                    if product.certificate_color is not None
-                    else ""
-                ),
-                frame_color=(
-                    product.frame_color if product.frame_color is not None else ""
-                ),
-                frame_size=product.frame_size if product.frame_size is not None else "",
-                frame_thickness=(
-                    product.frame_thickness
-                    if product.frame_thickness is not None
-                    else ""
-                ),
-            )
-            db.add(order_detail)
-            db.commit()
-            db.refresh(order_detail)
-
-            # Move associated tags from cart to order
-            tag_list = (
-                db.query(order_selected_tags)
-                .filter(order_selected_tags.cart_id == product.id)
-                .all()
-            )
-
-            for tag in tag_list:
-                tag.cart_id = None
-                tag.order_id = order.id
-                db.commit()
-                db.refresh(tag)
-
-        # payment record
-        payment_obj = Payment_details(
-            order_id=order.id,
-            user_id=user.id,
-            payment_id=payload.payment_id,
-            payment_amount=payment["amount"],
-            payment_status=payment["status"],
-            payment_response=payment,
-        )
-
-        db.add(payment_obj)
-        db.commit()
-        db.refresh(payment_obj)
-        # order status update
-        create_record(
-            db,
-            Orders_status,
-            order_status="Processing",
-            order_id=order.id,
-            user_id=user.id,
-        )
-
-        # ✅ Delete cart item
-        db.query(Carts).filter(Carts.session_id == session_id).delete()
-        # db.delete(product)
-        db.commit()
-        # create order in Razorpay
-
-        # Get order product details
-        order_details = (
-            db.query(Order_details).filter(Order_details.order_id == order.id).all()
-        )
-
-        product_details = []
-        for order_det_obj in order_details:
-            product = (
-                db.query(Products)
-                .filter(Products.id == order_det_obj.product_id)
-                .first()
-            )
-            product_details.append(
-                {
-                    "product_id": product.id,
-                    "product_name": product.product_name,
-                    "price": product.price,
-                    "is_digital": product.is_digital,
-                    "thumbnail": product.thumbnail,
-                    "thumbnail_url": settings.IMAGE_URL + product.thumbnail,
-                    "certificate_color": order_det_obj.certificate_color,
-                    "frame_color": order_det_obj.frame_color,
-                }
-            )
-
-        # ✅ Build final order object
-        order_obj = {
-            "txn_id": order.txn_id,
-            "user": {
-                "id": user.id,
-                "username": user.username,
-                "phone": user.phone,
-            },
-            "shipping_address": {
-                "user_email": shipping.user_email,
-                "full_name": shipping.user_fname + " " + shipping.user_lname,
-                "user_fname": shipping.user_fname,
-                "user_lname": shipping.user_lname,
-                "user_address": shipping.user_address,
-                "city": shipping.city,
-                "state": shipping.state,
-                "pincode": shipping.pincode,
-                "country": shipping.country,
-                "contact_mobile": shipping.contact_mobile,
-            },
-            "products": product_details,
-            "total_amount": order.total_amount,
-            "amount": int(order.total_amount) - int(order.shipping_fee),
-            "shipping_fee": order.shipping_fee,
-            "paid_amount": order.paid_amount,
-            "subtotal": order.sub_total,
-            "c_gst": order.c_gst,
-            "s_gst": order.s_gst,
-            "cgst_rate": gst["cgst_rate"],
-            "sgst_rate": gst["sgst_rate"],
-            "WEB_URL": settings.WEB_URL + order.txn_id,
-            "payment_methods": payment["method"],
-        }
-
-        print("order_obj", order_obj)
-
-        background_tasks.add_task(
-            order_email_sent, email_to=payload.email, data=order_obj
-        )
-
-        # generate_pdf_and_upload_to_s3
-        background_tasks.add_task(
-            generate_pdf_and_upload_to_s3,
-            db=db,
-            file_name="order_invoice",
-            data=order_obj,
-            order_id=order.txn_id,
-        )
-
-        return {
-            "message": "Payment created successfully",
-            "order_id": order.id,
-        }
-
-    except Exception as error:
-        db.rollback()
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Order creation failed: {str(error)}",
-        )
-
 
 # get order full details by order id
 @router.get("/product/order/details/{order_id}")
@@ -722,3 +501,293 @@ def get_cart_details(
 
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
+
+
+
+headers = {
+    "x-client-id": "TEST10634350195f39e7a74c17f76fd105343601",
+    "x-client-secret": "cfsk_ma_test_df82f2c52e2886b6946b969b20e32b14_069e556d",
+    "x-api-version": "2022-09-01",  # Required!
+    "Content-Type": "application/json"
+}
+
+CASHFREE_API_BASE = "https://sandbox.cashfree.com/pg/orders"  # Use sandbox for testing
+
+@router.post("/product/create-order/")
+async def create_order(request: Request):
+    data = await request.json()
+
+    payload = {
+        "order_id": data["order_id"],
+        "order_amount": data["amount"],
+        "order_currency": "INR",
+        "customer_details": {
+            "customer_id": data["customer_id"],
+            "customer_email": data["email"],
+            "customer_phone": data["phone"]
+        },
+
+    }
+
+    async with httpx.AsyncClient() as client:
+        response = await client.post(CASHFREE_API_BASE, headers=headers, json=payload)
+        return JSONResponse(status_code=response.status_code, content=response.json())
+
+
+
+@router.get("/product/verify-order/{order_id}")
+async def verify_order(order_id: str):
+    url = f"https://sandbox.cashfree.com/pg/orders/{order_id}"
+
+    async with httpx.AsyncClient() as client:
+        response = await client.get(url, headers=headers)
+
+    return response.json()
+
+
+@router.post("/product/verify/order/")
+async def create_product_order(
+    session_id: str,
+    order_id:str,
+    background_tasks: BackgroundTasks,
+    payload: OrderCreatePayload,
+    db: Session = Depends(get_db),
+):
+    try:
+        url = f"https://sandbox.cashfree.com/pg/orders/{order_id}/payments"
+
+        async with httpx.AsyncClient() as client:
+            response = await client.get(url, headers=headers)
+
+        payment= response.json()
+        # print("payment",payment)
+
+        if isinstance(payment, list):
+            payment_detail = payment[0] if payment else None
+        # If payment is a dict with a 'payment' key as a list, return the first
+        elif isinstance(payment, dict) and 'payment' in payment and isinstance(payment['payment'], list):
+            payment_detail = payment['payment'][0] if payment['payment'] else None
+        else:
+            payment_detail = payment
+        print("payment_detail",payment_detail)
+
+        # verify payments
+        if payment is None:
+            raise ValueError("Payment not found")
+        # # 1. Get or create user
+        user = db.query(User).filter(User.phone == payload.phone).first()
+        if not user:
+            user = User(
+                username=payload.username,
+                phone=payload.phone,
+                email=payload.email,
+                password=payload.phone,
+                status="active",
+            )
+            db.add(user)
+            db.commit()
+            db.refresh(user)
+
+        # 2. Create user shipping address
+        shipping = User_shipping_address(
+            user_email=payload.user_email,
+            user_fname=payload.user_fname,
+            user_lname=payload.user_lname,
+            user_address=payload.user_address,
+            city=payload.city,
+            landmark=payload.landmark,
+            state=payload.state,
+            pincode=payload.pincode,
+            country=payload.country,
+            contact_mobile=payload.contact_mobile,
+            user_id=user.id,
+        )
+        db.add(shipping)
+        db.commit()
+        db.refresh(shipping)
+
+        # 3. Create main order
+        settings_details = db.query(SettingsModel).first()
+
+        amount_with_shipping = int(payload.total_amount) - int(payload.shipping_fee)
+        gst = get_c_gst_s_gst(amount_with_shipping, settings_details)
+        order = Orders(
+            user_id=user.id,
+            total_amount=payload.total_amount,
+            shipping_fee=payload.shipping_fee,
+            shipping_address=shipping.id,
+            sub_total=gst["subtotal"],
+            c_gst=gst["cgst"],
+            s_gst=gst["sgst"],
+            paid_amount=payload.total_amount,
+            txn_id=payment_detail["order_id"],
+        )
+        db.add(order)
+        db.commit()
+        db.refresh(order)
+
+        # 4. Fetch cart items
+        carts = db.query(Carts).filter(Carts.session_id == session_id).all()
+        if not carts:
+            raise HTTPException(
+                status_code=404, detail="No cart items found for session"
+            )
+
+        # 5. Add order details and assign tags
+        for product in carts:
+            order_detail = Order_details(
+                user_id=user.id,
+                product_id=product.product_id,
+                order_id=order.id,
+                quantity=1,
+                certificate_color=(
+                    product.certificate_color
+                    if product.certificate_color is not None
+                    else ""
+                ),
+                frame_color=(
+                    product.frame_color if product.frame_color is not None else ""
+                ),
+                frame_size=product.frame_size if product.frame_size is not None else "",
+                frame_thickness=(
+                    product.frame_thickness
+                    if product.frame_thickness is not None
+                    else ""
+                ),
+            )
+            db.add(order_detail)
+            db.commit()
+            db.refresh(order_detail)
+
+            # Move associated tags from cart to order
+            tag_list = (
+                db.query(order_selected_tags)
+                .filter(order_selected_tags.cart_id == product.id)
+                .all()
+            )
+
+            for tag in tag_list:
+                tag.cart_id = None
+                tag.order_id = order.id
+                db.commit()
+                db.refresh(tag)
+
+        # payment record
+        payment_obj = Payment_details(
+            order_id=order.id,
+            user_id=user.id,
+            payment_id=payment_detail["cf_payment_id"],
+            payment_amount=payment_detail["payment_amount"],
+            payment_status=payment_detail["payment_status"],
+            payment_response=payment_detail,
+        )
+
+        db.add(payment_obj)
+        db.commit()
+        db.refresh(payment_obj)
+        # order status update
+        create_record(
+            db,
+            Orders_status,
+            order_status="Processing",
+            order_id=order.id,
+            user_id=user.id,
+        )
+
+        # ✅ Delete cart item
+        db.query(Carts).filter(Carts.session_id == session_id).delete()
+        # db.delete(product)
+        db.commit()
+        # create order in Razorpay
+
+        # Get order product details
+        order_details = (
+            db.query(Order_details).filter(Order_details.order_id == order.id).all()
+        )
+
+        product_details = []
+        for order_det_obj in order_details:
+            product = (
+                db.query(Products)
+                .filter(Products.id == order_det_obj.product_id)
+                .first()
+            )
+            product_details.append(
+                {
+                    "product_id": product.id,
+                    "product_name": product.product_name,
+                    "price": product.price,
+                    "is_digital": product.is_digital,
+                    "thumbnail": product.thumbnail,
+                    "thumbnail_url": settings.IMAGE_URL + product.thumbnail,
+                    "certificate_color": order_det_obj.certificate_color,
+                    "frame_color": order_det_obj.frame_color,
+                }
+            )
+
+        # ✅ Build final order object
+        payment_method = payment_detail.get("payment_method", {})
+
+        # Get the method type: 'card', 'upi', 'netbanking', etc.
+        method_type = next(iter(payment_method), None)
+
+
+        order_obj = {
+            "txn_id": order.txn_id,
+            "user": {
+                "id": user.id,
+                "username": user.username,
+                "phone": user.phone,
+            },
+            "shipping_address": {
+                "user_email": shipping.user_email,
+                "full_name": shipping.user_fname + " " + shipping.user_lname,
+                "user_fname": shipping.user_fname,
+                "user_lname": shipping.user_lname,
+                "user_address": shipping.user_address,
+                "city": shipping.city,
+                "state": shipping.state,
+                "pincode": shipping.pincode,
+                "country": shipping.country,
+                "contact_mobile": shipping.contact_mobile,
+            },
+            "products": product_details,
+            "total_amount": order.total_amount,
+            "amount": int(order.total_amount) - int(order.shipping_fee),
+            "shipping_fee": order.shipping_fee,
+            "paid_amount": order.paid_amount,
+            "subtotal": order.sub_total,
+            "c_gst": order.c_gst,
+            "s_gst": order.s_gst,
+            "cgst_rate": gst["cgst_rate"],
+            "sgst_rate": gst["sgst_rate"],
+            "WEB_URL": settings.WEB_URL + order.txn_id,
+            "payment_methods":method_type,
+        }
+
+
+        background_tasks.add_task(
+            order_email_sent, email_to=payload.email, data=order_obj
+        )
+
+        # generate_pdf_and_upload_to_s3
+        background_tasks.add_task(
+            generate_pdf_and_upload_to_s3,
+            db=db,
+            file_name="order_invoice",
+            data=order_obj,
+            order_id=order.txn_id,
+        )
+
+        return {
+            "message": "Payment created successfully",
+            "order_id": "12312",
+        }
+
+    except Exception as error:
+        db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Order creation failed: {str(error)}",
+        )
+
