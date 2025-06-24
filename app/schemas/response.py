@@ -73,6 +73,7 @@ class ProductTagOptionsResponse(BaseModel):
 
 class ProductColorResponse(BaseModel):
     id: int
+    priority: int
     name: Optional[str]  # Allow NULL values
 
 

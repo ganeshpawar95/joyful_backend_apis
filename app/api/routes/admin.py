@@ -293,6 +293,7 @@ async def update_product(
     product_category: Optional[str] = Form(None),
     product_trading_type: Optional[str] = Form(None),
     is_digital: Optional[bool] = Form(False),
+    product_status: Optional[bool] = Form(True),
     product_images: Optional[UploadFile] = File(None),
     db: Session = Depends(get_db),
 ):
@@ -330,6 +331,7 @@ async def update_product(
                 "priority": priority,
                 "product_type": product_type,
                 "is_digital": is_digital,
+                "status": product_status,
                 "product_category": product_category,
                 "product_trading_type": product_trading_type,
             },
@@ -888,21 +890,23 @@ def add_frame_color(payload: ProductFrameCreate, db: Session = Depends(get_db)):
 
 
 @router.post("/product/tag_option/add/")
-def add_product_tag_options(payload: ProductTagCreate, db: Session = Depends(get_db)):
+def add_product_tag_options(
+    payload: List[ProductTagCreate], db: Session = Depends(get_db)
+):
     try:
-        # Create new product tag
-        create_record(
-            db,
-            Product_tag_options,
-            product_id=payload.product_id,
-            name=payload.name,
-            tag=payload.tag,
-            priority=payload.priority,
-            tag_optional=(
-                json.dumps(payload.tag_optional) if payload.tag_optional else None
-            ),
-        )
-        return {"message": "Product tag added successfully"}
+        for tag_data in payload:
+            create_record(
+                db,
+                Product_tag_options,
+                product_id=tag_data.product_id,
+                name=tag_data.name,
+                tag=tag_data.tag,
+                priority=tag_data.priority,
+                tag_optional=(
+                    json.dumps(tag_data.tag_optional) if tag_data.tag_optional else None
+                ),
+            )
+        return {"message": "Product tags added successfully"}
     except Exception as error:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(error))
 

@@ -15,9 +15,6 @@ TEMPLATE_DIR = os.path.join(BASE_DIR, "templates")
 env = Environment(loader=FileSystemLoader(TEMPLATE_DIR))
 template = env.get_template("index.html")
 
-print("BASE_DIR", BASE_DIR)
-print("TEMPLATE_DIR", TEMPLATE_DIR)
-print("env", env)
 settings = Settings()
 
 
@@ -60,6 +57,7 @@ PDF_KIT_OPTIONS = {
     "margin-bottom": "0.0in",
     "margin-left": "0.2in",
     "minimum-font-size": "20",
+    "enable-local-file-access": None,
 }
 
 

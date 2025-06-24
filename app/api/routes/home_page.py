@@ -40,7 +40,7 @@ from fastapi import HTTPException, status
 from sqlalchemy.orm import joinedload, contains_eager
 from sqlalchemy.sql import func
 
-from app.utils.helpers import generate_order_id, get_c_gst_s_gst
+from app.utils.helpers import format_amount, generate_order_id, get_c_gst_s_gst
 from app.utils.task import generate_pdf_and_upload_to_s3, order_email_sent
 from fastapi_mail import FastMail, MessageSchema, MessageType
 from jinja2 import Environment, FileSystemLoader
@@ -87,7 +87,7 @@ def get_products(
     db: Session = Depends(get_db),
 ):
     try:
-        filters = {}
+        filters = {"status": True}
         if product_type:
             filters["product_type"] = product_type
 
@@ -720,7 +720,7 @@ async def create_product_order(
                 {
                     "product_id": product.id,
                     "product_name": product.product_name,
-                    "price": product.price,
+                    "price": format_amount(product.price),
                     "is_digital": product.is_digital,
                     "thumbnail": product.thumbnail,
                     "thumbnail_url": settings.IMAGE_URL + product.thumbnail,
@@ -755,11 +755,11 @@ async def create_product_order(
                 "contact_mobile": shipping.contact_mobile,
             },
             "products": product_details,
-            "total_amount": order.total_amount,
-            "amount": int(order.total_amount) - int(order.shipping_fee),
+            "total_amount": format_amount(order.total_amount),
+            "amount": format_amount(int(order.total_amount) - int(order.shipping_fee)),
             "shipping_fee": order.shipping_fee,
-            "paid_amount": order.paid_amount,
-            "subtotal": order.sub_total,
+            "paid_amount": format_amount(order.paid_amount),
+            "subtotal": format_amount(order.sub_total),
             "c_gst": order.c_gst,
             "s_gst": order.s_gst,
             "cgst_rate": gst["cgst_rate"],
@@ -783,7 +783,7 @@ async def create_product_order(
 
         return {
             "message": "Payment created successfully",
-            "order_id": "12312",
+            "order_id": order_id,
         }
 
     except Exception as error:
