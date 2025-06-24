@@ -44,6 +44,9 @@ def get_c_gst_s_gst(total_amount, setting_details):
 
 
 def format_amount(amount):
-    if amount == 0:
-        return "0"
-    return "{:,}".format(amount)
+    try:
+        if amount == 0:
+            return 0
+        return "{:,}".format(int(amount))
+    except:
+        return 0
