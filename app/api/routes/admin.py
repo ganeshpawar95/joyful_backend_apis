@@ -480,7 +480,7 @@ def delete_product(product_id: int, db: Session = Depends(get_db)):
 @router.get("/product/images/list/")
 def list_product_images(db: Session = Depends(get_db)):
     try:
-        images = db.query(Product_images).all()
+        images = db.query(Product_images).order_by(Product_images.id.desc()).all()
         result = []
         for img in images:
             img_dict = img.__dict__.copy()
@@ -695,18 +695,20 @@ def delete_certificate_color(color_id: int, db: Session = Depends(get_db)):
 
 
 @router.post("/certificate/color/add/")
-def add_certificate_color(payload: ProductFrameCreate, db: Session = Depends(get_db)):
+def add_certificate_color(
+    payload: list[ProductFrameCreate], db: Session = Depends(get_db)
+):
     try:
-        # Create new certificate color
-        create_record(
-            db,
-            Certificate_colors,
-            name=payload.name,
-            status=payload.status,
-            priority=payload.priority,
-            product_id=payload.product_id,
-        )
-        return {"message": "Certificate color added successfully"}
+        for color_data in payload:
+            create_record(
+                db,
+                Certificate_colors,
+                name=color_data.name,
+                status=color_data.status,
+                priority=color_data.priority,
+                product_id=color_data.product_id,
+            )
+        return {"message": "Certificate colors added successfully"}
     except Exception as error:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(error))
 
@@ -752,17 +754,18 @@ def delete_frame_color(color_id: int, db: Session = Depends(get_db)):
 
 
 @router.post("/frame/color/add/")
-def add_frame_color(payload: ProductFrameCreate, db: Session = Depends(get_db)):
+def add_frame_color(payload: List[ProductFrameCreate], db: Session = Depends(get_db)):
     try:
         # Create new certificate color
-        create_record(
-            db,
-            Frame_colors,
-            name=payload.name,
-            status=payload.status,
-            priority=payload.priority,
-            product_id=payload.product_id,
-        )
+        for data_obj in payload:
+            create_record(
+                db,
+                Frame_colors,
+                name=data_obj.name,
+                status=data_obj.status,
+                priority=data_obj.priority,
+                product_id=data_obj.product_id,
+            )
         return {"message": "Frame color added successfully"}
     except Exception as error:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(error))
@@ -809,17 +812,18 @@ def delete_frame_size(size_id: int, db: Session = Depends(get_db)):
 
 
 @router.post("/frame/size/add/")
-def add_frame_color(payload: ProductFrameCreate, db: Session = Depends(get_db)):
+def add_frame_color(payload: List[ProductFrameCreate], db: Session = Depends(get_db)):
     try:
         # Create new frame size
-        create_record(
-            db,
-            Frame_size,
-            name=payload.name,
-            status=payload.status,
-            priority=payload.priority,
-            product_id=payload.product_id,
-        )
+        for data_obj in payload:
+            create_record(
+                db,
+                Frame_size,
+                name=data_obj.name,
+                status=data_obj.status,
+                priority=data_obj.priority,
+                product_id=data_obj.product_id,
+            )
         return {"message": "Frame size added successfully"}
     except Exception as error:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(error))
@@ -870,17 +874,18 @@ def delete_frame_thickness(thickness_id: int, db: Session = Depends(get_db)):
 
 
 @router.post("/frame/thickness/add/")
-def add_frame_color(payload: ProductFrameCreate, db: Session = Depends(get_db)):
+def add_frame_color(payload: List[ProductFrameCreate], db: Session = Depends(get_db)):
     try:
         # Create new frame size
-        create_record(
-            db,
-            Frame_Thickness,
-            name=payload.name,
-            status=payload.status,
-            priority=payload.priority,
-            product_id=payload.product_id,
-        )
+        for data_obj in payload:
+            create_record(
+                db,
+                Frame_Thickness,
+                name=data_obj.name,
+                status=data_obj.status,
+                priority=data_obj.priority,
+                product_id=data_obj.product_id,
+            )
         return {"message": "Frame thickness added successfully"}
     except Exception as error:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(error))

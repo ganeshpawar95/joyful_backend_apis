@@ -105,7 +105,7 @@ def get_products(
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(error))
 
 
-@router.get("/products/details/", response_model=ProductResponse)
+@router.get("/products/details/")
 def get_products_details(product_id: int, db: Session = Depends(get_db)):
     try:
         # Subquery to get only active product images
@@ -125,28 +125,21 @@ def get_products_details(product_id: int, db: Session = Depends(get_db)):
             .outerjoin(
                 Product_rating, Products.id == Product_rating.product_id
             )  # Join ratings
-            .outerjoin(
-                Certificate_colors, Products.id == Certificate_colors.product_id
-            )  # Join ratings
-            .outerjoin(
-                Frame_colors, Products.id == Frame_colors.product_id
-            )  # Join ratings
-            .outerjoin(Frame_size, Products.id == Frame_size.product_id)  # Join ratings
-            .outerjoin(
-                Frame_Thickness, Products.id == Frame_Thickness.product_id
-            )  # Join ratings
+            .outerjoin(Certificate_colors, Products.id == Certificate_colors.product_id)
+            .outerjoin(Frame_colors, Products.id == Frame_colors.product_id)
+            .outerjoin(Frame_size, Products.id == Frame_size.product_id)
+            .outerjoin(Frame_Thickness, Products.id == Frame_Thickness.product_id)
             .outerjoin(
                 Product_tag_options, Products.id == Product_tag_options.product_id
-            )  # Join ratings
+            )
             .filter(Products.id == product_id)
             .options(
-                # contains_eager(Products.product_images, alias=active_images_subquery),  # Load only active images
-                joinedload(Products.product_ratings),  # Load ratings
-                joinedload(Products.certificate_colors),  # Load ratings
-                joinedload(Products.frame_colors),  # Load ratings
-                joinedload(Products.frame_size),  # Load ratings
-                joinedload(Products.frame_thickness),  # Load ratings
-                joinedload(Products.product_tag_options),  # Load ratings
+                joinedload(Products.product_ratings),
+                joinedload(Products.certificate_colors),
+                joinedload(Products.frame_colors),
+                joinedload(Products.frame_size),
+                joinedload(Products.frame_thickness),
+                joinedload(Products.product_tag_options),
             )
             .first()
         )
@@ -159,7 +152,67 @@ def get_products_details(product_id: int, db: Session = Depends(get_db)):
                 except json.JSONDecodeError:
                     tag_option.tag_optional = {}
 
-        return query
+        # Add similar products by product_category_type
+        similar_products = []
+        if query and query.product_category:
+            similar_products = (
+                db.query(Products)
+                .filter(
+                    Products.product_category == query.product_category,
+                    Products.id != product_id,
+                    Products.status == True,
+                )
+                .limit(8)
+                .all()
+            )
+
+        # Add product reviews
+        product_reviews = (
+            db.query(
+                Product_rating.id,
+                Product_rating.user_name,
+                Product_rating.title,
+                Product_rating.review,
+                Product_rating.rating,
+                Product_rating.created_at,
+                func.group_concat(Product_Review_images.images).label("review_images"),
+            )
+            .outerjoin(
+                Product_Review_images,
+                Product_rating.id == Product_Review_images.product_rating_id,
+            )
+            .filter(Product_rating.product_id == product_id)
+            .group_by(Product_rating.id)
+            .all()
+        )
+
+        print("product_reviews", product_reviews)
+        formatted_reviews = [
+            {
+                "id": row.id,
+                "user_name": row.user_name,
+                "title": row.title,
+                "review": row.review,
+                "rating": row.rating,
+                "created_at": (
+                    row.created_at.strftime("%b %d, %Y") if row.created_at else None
+                ),
+                "review_images": (
+                    row.review_images.split(",") if row.review_images else []
+                ),
+            }
+            for row in product_reviews
+        ]
+
+        # Attach similar_products and reviews to the response object
+        # If ProductResponse supports extra fields, otherwise add as dict
+        product_dict = query.__dict__.copy()
+
+        if query:
+            product_dict["similar_products"] = similar_products
+            product_dict["product_reviews"] = formatted_reviews
+
+        return product_dict
     except Exception as error:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(error))
 
@@ -450,7 +503,7 @@ def get_cart_details(
                 {
                     "product_id": product.id,
                     "product_name": product.product_name,
-                    "price": product.price,
+                    "price": format_amount(product.price),
                     "is_digital": product.is_digital,
                     "thumbnail": product.thumbnail,
                     "thumbnail_url": settings.IMAGE_URL + product.thumbnail,
@@ -496,13 +549,15 @@ def get_cart_details(
             },
             "products": product_details,
             "order_status": order_status_list,
-            "total_amount": orders.total_amount,
-            "amount": int(orders.total_amount) - int(orders.shipping_fee),
-            "shipping_fee": orders.shipping_fee,
-            "subtotal": orders.sub_total,
-            "c_gst": orders.c_gst,
-            "s_gst": orders.s_gst,
-            "paid_amount": orders.paid_amount,
+            "total_amount": format_amount(orders.total_amount),
+            "amount": format_amount(
+                int(orders.total_amount) - int(orders.shipping_fee)
+            ),
+            "shipping_fee": format_amount(orders.shipping_fee),
+            "subtotal": format_amount(orders.sub_total),
+            "c_gst": format_amount(orders.c_gst),
+            "s_gst": format_amount(orders.s_gst),
+            "paid_amount": format_amount(orders.paid_amount),
             "invoice_url": orders.invoice,
             # "order_status_current": orders.order_status,
         }
@@ -757,11 +812,11 @@ async def create_product_order(
             "products": product_details,
             "total_amount": format_amount(order.total_amount),
             "amount": format_amount(int(order.total_amount) - int(order.shipping_fee)),
-            "shipping_fee": order.shipping_fee,
+            "shipping_fee": format_amount(order.shipping_fee),
             "paid_amount": format_amount(order.paid_amount),
             "subtotal": format_amount(order.sub_total),
-            "c_gst": order.c_gst,
-            "s_gst": order.s_gst,
+            "c_gst": format_amount(order.c_gst),
+            "s_gst": format_amount(order.s_gst),
             "cgst_rate": gst["cgst_rate"],
             "sgst_rate": gst["sgst_rate"],
             "WEB_URL": settings.WEB_URL + order.txn_id,
