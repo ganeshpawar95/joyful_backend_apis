@@ -56,6 +56,7 @@ class Settings(BaseSettings):
     SQLITE_DB_FILE: str = Field("database.db", env="SQLITE_DB_FILE")
     TABLE_PREFIX: str = "prod_"
     IMAGE_URL: str = "http://18.61.79.151/"
+    # IMAGE_URL: str = "http://0.0.0.0:8000/"
     WEB_URL: str = "http://18.61.79.151/order-tracking/"
     # Directory to Save Banners
     BANNER_DIR: str = "images/banners"
