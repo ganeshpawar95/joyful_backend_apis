@@ -230,7 +230,7 @@ async def create_product(
     meta_title: Optional[str] = Form(None),
     meta_keywords: Optional[str] = Form(None),
     meta_desc: Optional[str] = Form(None),
-    product_status: bool = Form(...),
+    product_status: bool = Form(True),
     priority: int = Form(...),
     product_type: Optional[str] = Form(None),
     product_category: Optional[str] = Form(None),
@@ -462,6 +462,15 @@ def delete_product(product_id: int, db: Session = Depends(get_db)):
         # Optionally, delete the product thumbnail from filesystem
         if product.thumbnail and os.path.exists(product.thumbnail):
             os.remove(product.thumbnail)
+
+        # Delete product_tag_options associated with this product
+        product_tags = (
+            db.query(Product_tag_options)
+            .filter(Product_tag_options.product_id == product_id)
+            .all()
+        )
+        for tag in product_tags:
+            db.delete(tag)
 
         db.delete(product)
         db.commit()
@@ -924,6 +933,9 @@ def update_product_tag_options(
     db: Session = Depends(get_db),
 ):
     try:
+        # Ensure product_id is not None
+        if payload.product_id is None:
+            raise HTTPException(status_code=400, detail="product_id cannot be None")
         # Update product tag
         update_record(
             db,
