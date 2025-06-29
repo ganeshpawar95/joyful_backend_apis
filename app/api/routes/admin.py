@@ -487,9 +487,14 @@ def delete_product(product_id: int, db: Session = Depends(get_db)):
 
 
 @router.get("/product/images/list/")
-def list_product_images(db: Session = Depends(get_db)):
+def list_product_images(
+    product_id: Optional[str] = None, db: Session = Depends(get_db)
+):
     try:
-        images = db.query(Product_images).order_by(Product_images.id.desc()).all()
+        query = db.query(Product_images)
+        if product_id is not None and product_id != "null":
+            query = query.filter(Product_images.product_id == product_id)
+        images = query.order_by(Product_images.id.desc()).all()
         result = []
         for img in images:
             img_dict = img.__dict__.copy()
@@ -502,7 +507,7 @@ def list_product_images(db: Session = Depends(get_db)):
                 }
             else:
                 img_dict["product_details"] = None
-                img_dict.pop("_sa_instance_state", None)
+            img_dict.pop("_sa_instance_state", None)
             result.append(img_dict)
         return result
     except Exception as error:
@@ -556,9 +561,14 @@ async def upload_product_images(
 
 
 @router.get("/products/reviews/list/")
-def list_product_reviews(db: Session = Depends(get_db)):
+def list_product_reviews(
+    product_id: Optional[str] = None, db: Session = Depends(get_db)
+):
     try:
-        reviews = db.query(Product_rating).all()
+        query = db.query(Product_rating)
+        if product_id is not None and product_id != "null":
+            query = query.filter(Product_rating.product_id == product_id)
+        reviews = query.all()
         result = []
         for review in reviews:
             review_dict = review.__dict__.copy()
@@ -661,12 +671,16 @@ def add_product_review(
 
 # create list and delete certificate color api
 @router.get("/certificate/color/list/")
-def list_certificate_colors(db: Session = Depends(get_db)):
+def list_certificate_colors(
+    product_id: Optional[str] = None, db: Session = Depends(get_db)
+):
     try:
-        colors = db.query(Certificate_colors).all()
-        ## add product details to each Certificate_colors
+        query = db.query(Certificate_colors)
+        if product_id is not None and product_id != "null":
+            query = query.filter(Certificate_colors.product_id == product_id)
+        colors = query.all()
+        # add product details to each Certificate_colors
         result = []
-        print("colors", colors)
         for color in colors:
             color_dict = color.__dict__.copy()
             product = db.query(Products).filter(Products.id == color.product_id).first()
@@ -678,10 +692,9 @@ def list_certificate_colors(db: Session = Depends(get_db)):
                 }
             else:
                 color_dict["product_details"] = None
-                color_dict.pop("_sa_instance_state", None)
+            color_dict.pop("_sa_instance_state", None)
             result.append(color_dict)
         return result
-
     except Exception as error:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(error))
 
@@ -726,9 +739,12 @@ def add_certificate_color(
 
 
 @router.get("/frame/color/list/")
-def list_frame_colors(db: Session = Depends(get_db)):
+def list_frame_colors(product_id: Optional[str] = None, db: Session = Depends(get_db)):
     try:
-        colors = db.query(Frame_colors).all()
+        query = db.query(Frame_colors)
+        if product_id is not None and product_id != "null":
+            query = query.filter(Frame_colors.product_id == product_id)
+        colors = query.all()
         # add product details to each color
         result = []
         for color in colors:
@@ -742,7 +758,7 @@ def list_frame_colors(db: Session = Depends(get_db)):
                 }
             else:
                 color_dict["product_details"] = None
-                color_dict.pop("_sa_instance_state", None)
+            color_dict.pop("_sa_instance_state", None)
             result.append(color_dict)
         return result
     except Exception as error:
@@ -784,9 +800,12 @@ def add_frame_color(payload: List[ProductFrameCreate], db: Session = Depends(get
 
 
 @router.get("/frame/size/list/")
-def list_frame_sizes(db: Session = Depends(get_db)):
+def list_frame_sizes(product_id: Optional[str] = None, db: Session = Depends(get_db)):
     try:
-        sizes = db.query(Frame_size).all()
+        query = db.query(Frame_size)
+        if product_id is not None:
+            query = query.filter(Frame_size.product_id == product_id)
+        sizes = query.all()
         # add product details to each size
         result = []
         for size in sizes:
@@ -800,7 +819,7 @@ def list_frame_sizes(db: Session = Depends(get_db)):
                 }
             else:
                 size_dict["product_details"] = None
-                size_dict.pop("_sa_instance_state", None)
+            size_dict.pop("_sa_instance_state", None)
             result.append(size_dict)
         return result
     except Exception as error:
@@ -842,9 +861,14 @@ def add_frame_color(payload: List[ProductFrameCreate], db: Session = Depends(get
 
 
 @router.get("/frame/thickness/list/")
-def list_frame_thicknesses(db: Session = Depends(get_db)):
+def list_frame_thicknesses(
+    product_id: Optional[str] = None, db: Session = Depends(get_db)
+):
     try:
-        thicknesses = db.query(Frame_Thickness).all()
+        query = db.query(Frame_Thickness)
+        if product_id is not None and product_id != "null":
+            query = query.filter(Frame_Thickness.product_id == product_id)
+        thicknesses = query.all()
         # add product details to each thickness
         result = []
         for thickness in thicknesses:
@@ -860,7 +884,7 @@ def list_frame_thicknesses(db: Session = Depends(get_db)):
                 }
             else:
                 thickness_dict["product_details"] = None
-                thickness_dict.pop("_sa_instance_state", None)
+            thickness_dict.pop("_sa_instance_state", None)
             result.append(thickness_dict)
         return result
     except Exception as error:
@@ -976,10 +1000,15 @@ def get_product_list(db: Session = Depends(get_db)):
 
 # product tag list api
 @router.get("/product/tag/list/")
-def get_product_tag_list(db: Session = Depends(get_db)):
+def get_product_tag_list(
+    product_id: Optional[str] = None, db: Session = Depends(get_db)
+):
     try:
         result = []
-        product_tags = db.query(Product_tag_options).all()
+        query = db.query(Product_tag_options)
+        if product_id is not None:
+            query = query.filter(Product_tag_options.product_id == product_id)
+        product_tags = query.all()
         # add product details to each tag
         for tag in product_tags:
             tag_dict = tag.__dict__.copy()
