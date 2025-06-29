@@ -140,6 +140,7 @@ class ProductTagCreate(BaseModel):
     product_id: int
     name: Optional[str] = None
     tag: Optional[str] = None
+    validation_img: Optional[str] = ""
     priority: int  # Example: "approved", "pending"
     tag_optional: Optional[Dict[str, Any]]
 

@@ -98,6 +98,7 @@ class Product_tag_options(ItemBase, table=True):
     priority: int = Field(nullable=True, index=True)
     name: str = Field(nullable=True, index=True)
     tag: str = Field(nullable=True, index=True)
+    validation_img: str = Field(nullable=True, index=True, max_length=250)
     tag_optional: Optional[Dict[str, Any]] = Field(
         default=None, sa_column=Column(Text, nullable=True)
     )

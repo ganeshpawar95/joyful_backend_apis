@@ -915,6 +915,7 @@ def add_product_tag_options(
                 product_id=tag_data.product_id,
                 name=tag_data.name,
                 tag=tag_data.tag,
+                validation_img=tag_data.validation_img,
                 priority=tag_data.priority,
                 tag_optional=(
                     json.dumps(tag_data.tag_optional) if tag_data.tag_optional else None
